@@ -2,7 +2,6 @@
   (:require [pixie.streams :as st :refer :all]
             [pixie.streams.utf8 :as utf8]
             [pixie.io-blocking :as io-blocking]
-            [pixie.io.common :as common]
             [pixie.uv :as uv]
             [pixie.stacklets :as st]
             [pixie.ffi :as ffi]
@@ -38,7 +37,18 @@
     (fs_close fp))
   IReduce
   (-reduce [this f init]
-    (common/stream-reducer this f init)))
+    (let [DEFAULT-BUFFER-SIZE 1024
+          buf (buffer DEFAULT-BUFFER-SIZE)
+          rrf (preserving-reduced f)]
+      (loop [acc init]
+        (let [read-count (read this buf DEFAULT-BUFFER-SIZE)]
+          (if (> read-count 0)
+            (let [result (reduce rrf acc buf)]
+              (if (not (reduced? result))
+                (recur result)
+                @result))
+            acc))))
+    ))
 
 (defn open-read
   {:doc "Open a file for reading, returning a IInputStream"
@@ -122,13 +132,13 @@
 
 (defn buffered-output-stream
   ([downstream]
-   (buffered-output-stream downstream common/DEFAULT-BUFFER-SIZE))
+   (buffered-output-stream downstream 1024))
   ([downstream size]
     (->BufferedOutputStream downstream 0 (buffer size))))
 
 (defn buffered-input-stream
   ([upstream]
-   (buffered-input-stream upstream common/DEFAULT-BUFFER-SIZE))
+   (buffered-input-stream upstream 1024))
   ([upstream size]
    (let [b (buffer size)]
      (set-buffer-count! b size)
@@ -181,7 +191,9 @@
         result (transduce
                  (map char)
                  string-builder
-                 stream)]
+                 (-> stream
+                     buffered-input-stream
+                     utf8/utf8-input-stream))]
       (dispose! stream)
       result))
 

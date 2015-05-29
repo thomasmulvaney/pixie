@@ -255,9 +255,6 @@ class LocalMacro(LocalType):
     def emit(self, ctx):
         compile_form(self._from, ctx)
 
-
-
-
 def resolve_var(ctx, name):
     return NS_VAR.deref().resolve(name)
 
@@ -351,7 +348,7 @@ def compile_meta(meta, ctx):
     ctx.bytecode.append(1)
     ctx.sub_sp(1)
 
-def compile_form(form, ctx):
+def compile_form(form, ctx, resolve_syms=False):
     if form is nil:
         ctx.push_const(nil)
         return
@@ -377,6 +374,7 @@ def compile_form(form, ctx):
         ns = rt.namespace(form)
 
         loc = resolve_local(ctx, name)
+
         var = resolve_var(ctx, form)
 
         if var is None and loc:
@@ -388,7 +386,6 @@ def compile_form(form, ctx):
             return
         
         if var is None:
-            name = rt.name(form)
             var = NS_VAR.deref().intern_or_make(name)
 
         ctx.push_const(var)
@@ -603,6 +600,7 @@ def compile_def(form, ctx):
 
 
     ctx.push_const(var)
+    # Check that all symbols resolve
     compile_form(val, ctx)
     ctx.bytecode.append(code.SET_VAR)
     ctx.sub_sp(1)
