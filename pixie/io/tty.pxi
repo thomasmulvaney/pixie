@@ -11,8 +11,8 @@
     (common/cb-stream-reader uv-client buf len))
   IDisposable
   (-dispose! [this]
-    (dispose! uvbuf)
-    (fs_close fp))
+    (dispose! uv-write-buf)
+    (uv/uv_close uv-client st/close_cb))
   IReduce
   (-reduce [this f init]
     (common/stream-reducer this f init)))
