@@ -57,29 +57,7 @@
   (walk-dirs [this]
     "Recursivley returns all directories underneath"))
 
-(defn rel-path [a b]
-  (let [paths-a (string/split (abs a) "/")
-        paths-b (string/split (abs b) "/")
-        ;; Get the common root of the two paths and the bits that diverge
-        [common diff-a diff-b] (loop [ra paths-a rb paths-b common []]
-                                 (let [ca (first ra)
-                                       cb (first rb)]
-                                   (if (and ca cb (= ca cb))
-                                     (recur (rest ra) (rest rb) (conj common ca))
-                                     [common ra rb])))]
-    (let [level (- (count diff-a) (count diff-b))]
-      (cond
-        ;; Same level
-        (and (zero? (count diff-a)) (zero? (count diff-b)))
-        "."
 
-        ;; If B diverges by one level and a is a Dir we use ".."
-        (and (= 1 (count diff-b)) (instance? Dir a))
-        ".."
-
-        ;; In all other cases we want to go back to the root,
-        :else
-        (apply str (interpose "/" (concat (repeat (count diff-b) "..") diff-a)))))))
 
 (defn- assert-existence [f]
     (assert (exists? f) (str "No file or directory at \"" (abs f) "\"")))
@@ -101,6 +79,9 @@
 (defn- permissions-of-path [path]
   (assert-existence path)
   (permission-string (fs-mode (abs path))))
+
+(declare rel-path)
+(declare fspath)
 
 ;; File and Dir are just wrappers around paths.
 (deftype File [pathz]
@@ -209,6 +190,30 @@
     (str "<Dir " (str this) ">")))
 
 ;; (deftype Fifo [pathz])
+
+(defn rel-path [a b]
+  (let [paths-a (string/split (abs a) "/")
+        paths-b (string/split (abs b) "/")
+        ;; Get the common root of the two paths and the bits that diverge
+        [common diff-a diff-b] (loop [ra paths-a rb paths-b common []]
+                                 (let [ca (first ra)
+                                       cb (first rb)]
+                                   (if (and ca cb (= ca cb))
+                                     (recur (rest ra) (rest rb) (conj common ca))
+                                     [common ra rb])))]
+    (let [level (- (count diff-a) (count diff-b))]
+      (cond
+        ;; Same level
+        (and (zero? (count diff-a)) (zero? (count diff-b)))
+        "."
+
+        ;; If B diverges by one level and a is a Dir we use ".."
+        (and (= 1 (count diff-b)) (instance? Dir a))
+        ".."
+
+        ;; In all other cases we want to go back to the root,
+        :else
+        (apply str (interpose "/" (concat (repeat (count diff-b) "..") diff-a)))))))
 
 (defn file
   "Returns a file if the path is a file or does not exist. If a different filesystem object exists at the path an error will be thrown."
