@@ -39,6 +39,9 @@
       (throw (:ex val))
       val)))
 
+(def close_cb (ffi/ffi-prep-callback uv/uv_close_cb
+                                 pixie.ffi/dispose!))
+
 (defn -run-later [f]
   (let [a (uv/uv_async_t)
         cb (atom nil)]
@@ -56,13 +59,9 @@
       (-release-lock main-loop-lock))
     nil))
 
-
 (defn yield-control []
   (call-cc (fn [k]
              (-run-later (partial run-and-process k)))))
-
-(def close_cb (ffi/ffi-prep-callback uv/uv_close_cb
-                                 pixie.ffi/dispose!))
 
 ;;; Sleep
 (defn sleep [ms]
