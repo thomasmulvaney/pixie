@@ -1,7 +1,6 @@
 (ns pixie.io-blocking
   (:require [pixie.streams :as st :refer :all]))
 
-
 (def fopen (ffi-fn libc "fopen" [CCharP CCharP] CVoidP))
 (def fseek (ffi-fn libc "fseek" [CVoidP CInt CInt] CInt))
 (def ftell  (ffi-fn libc "ftell" [CVoidP] CInt))
@@ -14,6 +13,7 @@
 (def popen (ffi-fn libc "popen" [CCharP CCharP] CVoidP))
 (def pclose (ffi-fn libc "pclose" [CVoidP] CInt))
 
+(def DEFAULT-BUFFER-SIZE 1024)
 
 (deftype FileStream [fp]
   IInputStream
@@ -35,8 +35,7 @@
     (fclose fp))
   IReduce
   (-reduce [this f init]
-    (let [DEFAULT-BUFFER-SIZE 1024
-          buf (buffer DEFAULT-BUFFER-SIZE)
+    (let [buf (buffer DEFAULT-BUFFER-SIZE)
           rrf (preserving-reduced f)]
       (loop [acc init]
         (let [read-count (read this buf DEFAULT-BUFFER-SIZE)]
@@ -45,8 +44,7 @@
               (if (not (reduced? result))
                 (recur result)
                 @result))
-            acc))))
-    ))
+            acc))))))
 
 (defn open-read
   {:doc "Open a file for reading, returning a IInputStream"
@@ -139,8 +137,7 @@
     (pclose fp))
   IReduce
   (-reduce [this f init]
-    (let [DEFAULT-BUFFER-SIZE 1024
-          buf (buffer DEFAULT-BUFFER-SIZE)
+    (let [buf (buffer DEFAULT-BUFFER-SIZE)
           rrf (preserving-reduced f)]
       (loop [acc init]
         (let [read-count (read this buf DEFAULT-BUFFER-SIZE)]
@@ -149,8 +146,7 @@
               (if (not (reduced? result))
                 (recur result)
                 @result))
-            acc))))
-    ))
+            acc))))))
 
 (defn popen-read
   {:doc "Open a file for reading, returning a IInputStream"
