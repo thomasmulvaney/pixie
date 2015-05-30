@@ -39,7 +39,7 @@
                             (= 0xF0 (bit-and ch 0xF8)) [(bit-and ch 7) 4 false]
                             (= 0xF8 (bit-and ch 0xF8)) [(bit-and ch 3) 5 true]
                             (= 0xFC (bit-and ch 0xFE)) [(bit-and ch 1) 6 true]
-                            :else [n 1 true])]
+                            :else [ch 1 true])]
       (loop [i (dec bytes)
              n n]
         (if (pos? i)
