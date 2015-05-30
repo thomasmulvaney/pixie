@@ -37,4 +37,4 @@
   (mutate! (->Foo 0)))
 
 (t/deftest test-unresolved-symbols
-  (t/assert-throws? (eval (read-string "(defn foo [x] i-dont-exist))"))))
+  (t/assert-throws? (eval (read-string "(defn foo [x] i-dont-exist)"))))
