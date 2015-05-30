@@ -2,6 +2,7 @@
   (:require [pixie.streams :as st :refer :all]
             [pixie.streams.utf8 :as utf8]
             [pixie.io-blocking :as io-blocking]
+            [pixie.io.common :as common]
             [pixie.uv :as uv]
             [pixie.stacklets :as st]
             [pixie.ffi :as ffi]
@@ -37,18 +38,7 @@
     (fs_close fp))
   IReduce
   (-reduce [this f init]
-    (let [DEFAULT-BUFFER-SIZE 1024
-          buf (buffer DEFAULT-BUFFER-SIZE)
-          rrf (preserving-reduced f)]
-      (loop [acc init]
-        (let [read-count (read this buf DEFAULT-BUFFER-SIZE)]
-          (if (> read-count 0)
-            (let [result (reduce rrf acc buf)]
-              (if (not (reduced? result))
-                (recur result)
-                @result))
-            acc))))
-    ))
+    (common/stream-reducer this f init)))
 
 (defn open-read
   {:doc "Open a file for reading, returning a IInputStream"
@@ -89,14 +79,14 @@
             _ (pixie.ffi/set! uvbuf :len (- (count buffer) buffer-offset))
             write-count (fs_write fp uvbuf 1 offset)]
         (when (neg? write-count)
-          (throw (uv/uv_err_name read-count)))
+          (throw (uv/uv_err_name write-count)))
         (set-field! this :offset (+ offset write-count))
         (if (< (+ buffer-offset write-count) (count buffer))
           (recur (+ buffer-offset write-count))
           write-count))))
   IDisposable
   (-dispose! [this]
-    (fclose fp)))
+    (fs_close fp)))
 
 (deftype BufferedOutputStream [downstream idx buffer]
   IByteOutputStream
@@ -132,13 +122,13 @@
 
 (defn buffered-output-stream
   ([downstream]
-   (buffered-output-stream downstream 1024))
+   (buffered-output-stream downstream common/DEFAULT-BUFFER-SIZE))
   ([downstream size]
     (->BufferedOutputStream downstream 0 (buffer size))))
 
 (defn buffered-input-stream
   ([upstream]
-   (buffered-input-stream upstream 1024))
+   (buffered-input-stream upstream common/DEFAULT-BUFFER-SIZE))
   ([upstream size]
    (let [b (buffer size)]
      (set-buffer-count! b size)
@@ -191,9 +181,7 @@
         result (transduce
                  (map char)
                  string-builder
-                 (-> stream
-                     buffered-input-stream
-                     utf8/utf8-input-stream))]
+                 stream)]
       (dispose! stream)
       result))
 
