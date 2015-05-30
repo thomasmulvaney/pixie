@@ -41,6 +41,25 @@
                (cons 'loop* args)))
 (set-macro! loop)
 
+;; Unfortunately declare is defined much later and depends on a bunch of these things,
+;; so using 'def' instead.
+(def rest)
+(def every?)
+(def not)
+(def comp)
+(def hash-set)
+(def keyword?)
+(def assert)
+(def symbol?)
+(def fnil)
+(def or)
+(def take)
+(def doc-ns)
+(def destructure-vector)
+(def destructure-map)
+(def range)
+(def *e)
+(def mapv)
 (def identity
   (fn ^{:doc "The identity function. Returns its argument."
         :added "0.1"}
