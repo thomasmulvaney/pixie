@@ -137,6 +137,31 @@ class RuntimeException(Object):
 
         return u"".join(s)
 
+class CompilationError(Object):
+    _type = Type(u"pixie.stdlib.CompilationError")
+    def __init__(self, msg, data):
+        assert data is not None
+        assert msg is not None
+        self._msg = msg
+        self._data = data
+        self._trace = []
+
+    def type(self):
+        return CompilationError._type
+
+    def __repr__(self):
+        import pixie.vm.rt as rt
+        s = []
+        trace = self._trace[:]
+        trace.reverse()
+        for x in trace:
+            s.append(x.__repr__())
+            s.append(u"\n")
+        s.extend([u"CompilationError: " + rt.name(rt.str(self._data)) + u" " +
+                  rt.name(rt.str(self._msg)) + u"\n"])
+
+        return u"".join(s)
+
 class WrappedException(Exception):
     def __init__(self, ex):
         assert isinstance(ex, RuntimeException)
@@ -162,6 +187,11 @@ def runtime_error(msg, data=None):
     if data is None:
         data = u"pixie.stdlib/AssertionException"
     raise WrappedException(RuntimeException(rt.wrap(msg), keyword(data)))
+
+def compilation_error(msg):
+    import pixie.vm.rt as rt
+    from pixie.vm.keyword import keyword
+    raise WrappedException(CompilationError(rt.wrap(msg), keyword(u"pixie.stdlib/CompilationError")))
 
 def safe_invoke(f, args):
     try:
