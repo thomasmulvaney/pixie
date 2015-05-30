@@ -1,4 +1,4 @@
-from pixie.vm.object import affirm 
+from pixie.vm.object import affirm, compilation_error 
 from pixie.vm.primitives import nil, true, Bool
 from pixie.vm.persistent_vector import EMPTY, PersistentVector
 from pixie.vm.persistent_hash_set import PersistentHashSet
@@ -255,6 +255,9 @@ class LocalMacro(LocalType):
     def emit(self, ctx):
         compile_form(self._from, ctx)
 
+
+
+
 def resolve_var(ctx, name):
     return NS_VAR.deref().resolve(name)
 
@@ -348,7 +351,7 @@ def compile_meta(meta, ctx):
     ctx.bytecode.append(1)
     ctx.sub_sp(1)
 
-def compile_form(form, ctx, resolve_syms=False):
+def compile_form(form, ctx):
     if form is nil:
         ctx.push_const(nil)
         return
@@ -374,7 +377,6 @@ def compile_form(form, ctx, resolve_syms=False):
         ns = rt.namespace(form)
 
         loc = resolve_local(ctx, name)
-
         var = resolve_var(ctx, form)
 
         if var is None and loc:
@@ -386,7 +388,7 @@ def compile_form(form, ctx, resolve_syms=False):
             return
         
         if var is None:
-            var = NS_VAR.deref().intern_or_make(name)
+            compilation_error(u"Could not resolve symbol: " + rt.name(rt.str(form)) + u" in this context.")
 
         ctx.push_const(var)
 
@@ -600,7 +602,6 @@ def compile_def(form, ctx):
 
 
     ctx.push_const(var)
-    # Check that all symbols resolve
     compile_form(val, ctx)
     ctx.bytecode.append(code.SET_VAR)
     ctx.sub_sp(1)
