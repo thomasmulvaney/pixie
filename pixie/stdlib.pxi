@@ -1267,6 +1267,7 @@ and implements IAssociative, ILookup and IObject."
   (let [ctor-name (symbol (str "->" (name nm)))
         map-ctor-name (symbol (str "map" (name ctor-name)))
         fields (transduce (map (comp keyword name)) conj fields)
+        constructor-decl `(def ~ctor-name)
         type-from-map `(defn ~map-ctor-name [m]
                          (apply ~ctor-name (map #(get m %) ~fields)))
         default-bodies ['IAssociative
@@ -1294,7 +1295,8 @@ and implements IAssociative, ILookup and IObject."
                         `(-hash [self]
                                 (throw [:pixie.stdlib/NotImplementedException "not implemented"]))]
         deftype-decl `(deftype ~nm ~fields ~@default-bodies ~@body)]
-    `(do ~type-from-map
+    `(do ~constructor-decl
+         ~type-from-map
          ~deftype-decl)))
 
 (defn print
