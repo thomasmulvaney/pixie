@@ -79,7 +79,7 @@
             _ (pixie.ffi/set! uvbuf :len (- (count buffer) buffer-offset))
             write-count (fs_write fp uvbuf 1 offset)]
         (when (neg? write-count)
-          (throw [::FileOutputStreamException (uv/uv_err_name read-count)]))
+          (throw [::FileOutputStreamException (uv/uv_err_name write-count)]))
         (set-field! this :offset (+ offset write-count))
         (if (< (+ buffer-offset write-count) (count buffer))
           (recur (+ buffer-offset write-count))
@@ -100,12 +100,17 @@
   IDisposable
   (-dispose! [this]
     (set-buffer-count! buffer idx)
-    (write downstream buffer))
+    (write downstream buffer)
+    (flush this)
+    )
   IFlushableStream
   (flush [this]
     (set-buffer-count! buffer idx)
     (set-field! this :idx 0)
-    (write downstream buffer)))
+    (write downstream buffer)
+    (when (satisfies? IFlushableStream downstream)
+      (flush downstream))
+    ))
 
 (deftype BufferedInputStream [upstream idx buffer]
   IByteInputStream
@@ -149,7 +154,8 @@
                                                (bit-or uv/O_WRONLY uv/O_CREAT)
                                                uv/S_IRWXU))
                       0
-                      (uv/uv_buf_t)))
+                      (uv/uv_buf_t))
+  )
 
 (defn spit 
   "Writes the content to output. Output must be a file or an IOutputStream."
@@ -178,7 +184,7 @@
   (let [stream (cond
                  (string? input) (open-read input)
                  (satisfies? IInputStream input) input
-                 :else (throw [:pixie.io/Exception "Expected a string or an IInputStream"]))
+                 :else (:hrow [:pixie.io/Exception "Expected a string or an IInputStream"]))
         result (transduce
                  (map char)
                  string-builder
