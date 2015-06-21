@@ -86,7 +86,7 @@
           write-count))))
   IDisposable
   (-dispose! [this]
-    (fclose fp)))
+    (fs_close fp)))
 
 (deftype BufferedOutputStream [downstream idx buffer]
   IByteOutputStream
@@ -100,12 +100,17 @@
   IDisposable
   (-dispose! [this]
     (set-buffer-count! buffer idx)
-    (write downstream buffer))
+    (write downstream buffer)
+    (flush this)
+    )
   IFlushableStream
   (flush [this]
     (set-buffer-count! buffer idx)
     (set-field! this :idx 0)
-    (write downstream buffer)))
+    (write downstream buffer)
+    (when (satisfies? IFlushableStream downstream)
+      (flush downstream))
+    ))
 
 (deftype BufferedInputStream [upstream idx buffer]
   IByteInputStream
@@ -148,7 +153,8 @@
                                                (bit-or uv/O_WRONLY uv/O_CREAT)
                                                uv/S_IRWXU))
                       0
-                      (uv/uv_buf_t)))
+                      (uv/uv_buf_t))
+  )
 
 (defn spit 
   "Writes the content to output. Output must be a file or an IOutputStream."

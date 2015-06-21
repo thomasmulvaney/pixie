@@ -1,7 +1,9 @@
 (ns pixie.tests.test-io
   (require pixie.test :as t)
   (require pixie.streams :as st :refer :all)
-  (require pixie.io :as io))
+  (require pixie.streams.utf8 :as utf8 :refer :all)
+  (require pixie.io :as io)
+  (require pixie.zlib :as zlib))
 
 (t/deftest test-file-reduction
   (let [f (io/open-read "tests/pixie/tests/test-io.txt")]
@@ -41,3 +43,11 @@
     (t/assert= val (read-string (io/slurp "test.tmp"))))
   (t/assert-throws? (io/slurp 1))
   (t/assert-throws? (io/slurp :foo)))
+
+(t/deftest test-slurzp-spit
+  (io/run-command "rm fooz.gz")
+  (zlib/test2 (io/open-write "fooz.gz") (range 1000))
+  (io/run-command "zcat fooz.gz > fooz.txt")
+  (t/assert= (range 1000)
+             (read-string (io/slurp "fooz.txt")))
+  )

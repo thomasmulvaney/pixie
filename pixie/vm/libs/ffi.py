@@ -751,8 +751,8 @@ def c_struct(name, size, spec):
         offset = rt.nth(row, rt.wrap(2))
 
         affirm(isinstance(nm, Keyword), u"c-struct field names must be keywords")
-        if not isinstance(tp, CType):
-            runtime_error(u"c-struct field types must be c types, got: " + rt.name(rt.str(tp)))
+        #if not isinstance(tp, CType):
+        #    runtime_error(u"c-struct field types must be c types, got: " + rt.name(rt.str(tp)))
 
         d[nm] = (tp, offset.int_val())
 
