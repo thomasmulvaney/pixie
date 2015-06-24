@@ -81,7 +81,7 @@
     input to down stream")
   (deflate-end! [this]
     "Cleanup")
-
+  
   ;; Inflation
   (inflate-init! [this opts])
   (inflate! [this down-stream mode])
@@ -172,7 +172,11 @@
           (recur (inc deflate-cycles)))))))
 
 (defn z-stream [output-buffer]
-  (->ZStream (z_stream) output-buffer nil))
+  (let [z (z_stream)]
+    (ffi/set! z :zalloc nil)
+    (ffi/set! z :zfree nil)
+    (ffi/set! z :opaque nil)
+  (->ZStream z output-buffer nil)))
 
 (defprotocol ICodecStream
   (bytes-in  [this])
