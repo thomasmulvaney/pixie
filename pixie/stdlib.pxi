@@ -288,6 +288,12 @@
             (let [next (next coll)]
               (if next next '()))))
 
+(def extend
+  (fn [proto-method type-or-vector fn]
+    (if (vector? type-or-vector)
+      (pixie.stdlib.internal/-extend proto-method type-or-vector fn)
+      (pixie.stdlib.internal/-extend proto-method [type-or-vector] fn))))
+
 ;; Make all Function types extend IFn
 (extend -invoke Code -invoke)
 (extend -invoke NativeFn -invoke)
@@ -2491,9 +2497,11 @@ If the number of arguments is even and no clause matches, throws an exception."
               ["(hi \"Jane\")" nil "Hi, Jane!"]]
    :added "0.1"}
   [nm & sigs]
-  `(pixie.stdlib.internal/-defprotocol (quote ~nm)
-                                       ~(reduce (fn [r sig]
-                                                  (conj r `(quote ~(first sig))))
+  `(pixie.stdlib.internal/-defprotocol  (quote ~nm)
+                                       ~(reduce  (fn  [r [method-name fn-sig third fourth]]
+                                                   (let [variadicity (when (map? third)
+                                                                       (get third :variadicity))]
+                                                   (conj r `(quote [~method-name ~(or variadicity 1)]))))
                                                 []
                                                 sigs)))
 
@@ -2536,7 +2544,8 @@ Expands to calls to `extend-type`."
   ; tps is used to ensure protocols are extended in order
   (let [[_ tps exts] (reduce (fn [[tp tps res] extend-body]
                                (cond
-                                (symbol? extend-body) [extend-body (conj tps extend-body) (assoc res extend-body [])]
+                                (or (instance? Symbol extend-body)
+                                    (vector? extend-body)) [extend-body (conj tps extend-body) (assoc res extend-body [])]
                                 :else [tp tps (update-in res [tp] conj extend-body)]))
                              [nil [] {}]
                              extensions)
@@ -2848,7 +2857,6 @@ Calling this function on something that is not ISeqable returns a seq with that 
 
 (extend -repr Namespace -str)
 
-
 (defn bool?
   "Returns true if x is a Bool."
   [x]
@@ -2967,8 +2975,8 @@ Calling this function on something that is not ISeqable returns a seq with that 
 
 (defprotocol IComparable
   (-compare [x y]
-    "Compares two objects. Returns 0 when x is equal to y, -1 when x
-    is logically smaller than y, and 1 when x is logically larger."))
+    {:variadicity 2}
+    "Compare to objects returing 0 if the same -1 with x is logically smaller than y and 1 if x is logically larger"))
 
 (defn compare-numbers
   [x y]
@@ -3006,43 +3014,43 @@ Calling this function on something that is not ISeqable returns a seq with that 
   (-next  [coll] (-next  (seq coll))))
 
 (extend-protocol IComparable
-  Number
+  [Number Number]
   (-compare [x y]
     (if (number? y)
       (compare-numbers x y)
       (throw [::ComparisonError (str "Cannot compare: " x " to " y)])))
 
-  Character
+  [Character Character]
   (-compare [x y]
     (if (char? y)
       (compare-numbers (int x) (int y))
       (throw [::ComparisonError (str "Cannot compare: " x " to " y)])))
-
-  PersistentVector
+  
+  [PersistentVector PersistentVector]
   (-compare [x y]
     (if (vector? y)
       (compare-counted x y)
       (throw [::ComparisonError (str "Cannot compare: " x " to " y)])))
 
-  String
+  [String String]
   (-compare [x y]
     (if (string? y)
       (compare-counted (str x) (str y))
       (throw [::ComparisonError (str "Cannot compare: " x " to " y)])))
 
-  Keyword
+  [Keyword Keyword]
   (-compare [x y]
     (if (keyword? y)
       (compare-counted (str x) (str y))
       (throw [::ComparisonError (str "Cannot compare: " x " to " y)])))
 
-  Symbol
+  [Symbol Symbol]
   (-compare [x y]
     (if (symbol?  y)
       (compare-counted (str x) (str y))
       (throw [::ComparisonError (str "Cannot compare: " x " to " y)])))
 
-  Bool
+  [Bool Bool]
   (-compare [x y]
     (if (bool? y)
       (cond
@@ -3051,7 +3059,7 @@ Calling this function on something that is not ISeqable returns a seq with that 
         :else  -1))
       (throw [::ComparisonError (str "Cannot compare: " x " to " y)]))
 
-  Nil
+  [Nil Nil]
   (-compare [x y]
     (if (nil? y)
       0
@@ -3062,7 +3070,7 @@ Calling this function on something that is not ISeqable returns a seq with that 
   logically smaller than y, and 1 when x is logically larger. x must
   implement IComparable."
   [x y]
-  (if (satisfies? IComparable x)
+  (if (satisfies? IComparable x y)
     (-compare x y)
     (throw [::ComparisonError (str x " does not satisfy IComparable")])))
 

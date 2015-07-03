@@ -599,12 +599,16 @@ class DefaultProtocolFn(NativeFn):
         pfn = self._pfn
         if isinstance(pfn, PolymorphicFn):
             protocol = pfn._protocol
+            assert isinstance(protocol, Protocol)
+            affirm(False, u"No override for " + tp._name + u" on " + self._pfn._name + u" in protocol " + protocol._name)
         elif isinstance(pfn, DoublePolymorphicFn):
             protocol = pfn._protocol
+            tp2 = args[1].type()
+            assert isinstance(tp2, object.Type)
+            assert isinstance(protocol, Protocol)
+            affirm(False, u"No override for [" + tp._name + u" " + tp2._name + u"] on " + self._pfn._name + u" in protocol " + protocol._name)
         else:
             assert False
-        assert isinstance(protocol, Protocol)
-        affirm(False, u"No override for " + tp._name + u" on " + self._pfn._name + u" in protocol " + protocol._name)
 
 
 class Protocol(object.Object):
@@ -714,6 +718,9 @@ class PolymorphicFn(BaseCode):
 class DoublePolymorphicFn(BaseCode):
     """A function that is polymorphic on the first two arguments"""
     _type = object.Type(u"pixie.stdlib.DoublePolymorphicFn")
+
+    def type(self):
+        return DoublePolymorphicFn._type
 
     _immutable_fields_ = ["_rev?"]
 

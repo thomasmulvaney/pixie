@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from pixie.vm.object import Object, Type, _type_registry, WrappedException, RuntimeException, affirm, InterpreterCodeInfo, istypeinstance, \
     runtime_error, add_info, ExtraCodeInfo, finalizer_registry
-from pixie.vm.code import Namespace, BaseCode, PolymorphicFn, wrap_fn, as_var, defprotocol, extend, Protocol, Var, \
+from pixie.vm.code import Namespace, BaseCode, PolymorphicFn, DoublePolymorphicFn, wrap_fn, as_var, defprotocol, extend, Protocol, Var, \
                           list_copy, returns, intern_var, _ns_registry
 import pixie.vm.code as code
 from pixie.vm.primitives import true, false, nil
@@ -77,22 +77,29 @@ def _defprotocol(name, methods):
     from pixie.vm.persistent_vector import PersistentVector
     from pixie.vm.symbol import Symbol
     affirm(isinstance(name, Symbol), u"protocol name must be a symbol")
-    affirm(isinstance(methods, PersistentVector), u"protocol methods must be a vector of symbols")
-    method_list = []
-    for i in range(0, rt.count(methods)):
-        method_sym = rt.nth(methods, rt.wrap(i))
-        affirm(isinstance(method_sym, Symbol), u"protocol methods must be a vector of symbols")
-        method_list.append(rt.name(method_sym))
+    affirm(isinstance(methods, PersistentVector), u"methods must be a PersistentVector")
 
-    proto =  Protocol(rt.name(name))
     ns = rt.name(NS_VAR.deref())
+    proto = Protocol(rt.name(name))
     intern_var(ns, rt.name(name)).set_root(proto)
-    for method in method_list:
-        method = unicode(method)
-        poly = PolymorphicFn(method,  proto)
-        intern_var(ns, method).set_root(poly)
 
-    return name
+    for i in range(0, rt.count(methods)):
+        method = rt.nth(methods, rt.wrap(i))
+        affirm(isinstance(method, PersistentVector), u"each method should be a vector of name and variadicity")
+        method_sym  = rt.nth(method, rt.wrap(0))
+        method_name = rt.name(method_sym)
+        variadicity = rt.nth(method, rt.wrap(1)).int_val()
+        poly = None
+        if variadicity == 1:
+            poly = PolymorphicFn(method_name, proto)
+        elif variadicity == 2:
+            poly = DoublePolymorphicFn(method_name, proto)
+        else:
+            affirm(False, u"Pixie currently only supports single and double polymorphism")
+
+        intern_var(ns, method_name).set_root(poly)
+
+    return proto
 
 def __make_code_overrides(x):
     @extend(_meta, x._type)
@@ -624,14 +631,36 @@ def refer_symbol(ns, sym, var):
     ns.add_refer_symbol(sym, var)
     return nil
 
-@as_var("extend")
-def _extend(proto_fn, tp, fn):
-    if not isinstance(proto_fn, PolymorphicFn):
-        runtime_error(u"Fist argument to extend should be a PolymorphicFn not a " + proto_fn.type().name())
+@as_var("pixie.stdlib.internal", "-extend")
+def _extend(proto_fn, types_vec, fn):
+    from pixie.vm.persistent_vector import PersistentVector
 
-    affirm(isinstance(tp, Type) or isinstance(tp, Protocol), u"Second argument to extend must be a Type or Protocol")
-    affirm(isinstance(fn, BaseCode), u"Last argument to extend must be a function")
-    proto_fn.extend(tp, fn)
+    assert(isinstance(types_vec, PersistentVector), u"Types should be a vector")
+    variadicity = rt.count(types_vec)
+
+    assert(isinstance(variadicity, numbers.Integer), u"Types should be a vector")
+
+    if isinstance(proto_fn, PolymorphicFn):
+        if variadicity == 1:
+            type_1 = rt.nth(types_vec, rt.wrap(0))
+            affirm(isinstance(type_1, Type) or isinstance(type_1, Protocol), u"Second argument to extend must be a vector of Types or Protocols")
+
+            affirm(isinstance(fn, BaseCode), u"Last argument to extend must be a function")
+            proto_fn.extend(type_1, fn)
+        else:
+            runtime_error(u"PolymorphicFn expects a single type to dispatch on " + unicode(rt.name(rt.str(types_vec))))
+    elif isinstance(proto_fn, DoublePolymorphicFn):
+        if variadicity == 2:
+            type_1 = rt.nth(types_vec, rt.wrap(0))
+            type_2 = rt.nth(types_vec, rt.wrap(1))
+            affirm(isinstance(type_1, Type) or isinstance(type_1, Protocol), u"Second argument to extend must be a vector of Types or Protocols")
+            affirm(isinstance(type_2, Type) or isinstance(type_2, Protocol), u"Second argument to extend must be a vector of Types or Protocols")
+
+            affirm(isinstance(fn, BaseCode), u"Last argument to extend must be a function")
+            proto_fn.extend2(type_1, type_2, fn)
+        else:
+            runtime_error(u"DoublePolymorphicFn expects two types to dispatch on " + unicode(rt.name(rt.str(types_vec))))
+
     return nil
 
 @as_var("satisfy")
