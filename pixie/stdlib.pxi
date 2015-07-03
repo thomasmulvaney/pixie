@@ -287,6 +287,12 @@
             (let [next (next coll)]
               (if next next '()))))
 
+(def extend
+  (fn [proto-method type-or-vector fn]
+    (if (vector? type-or-vector)
+      (pixie.stdlib.internal/-extend proto-method type-or-vector fn)
+      (pixie.stdlib.internal/-extend proto-method [type-or-vector] fn))))
+
 ;; Make all Function types extend IFn
 (extend -invoke Code -invoke)
 (extend -invoke NativeFn -invoke)
@@ -2126,9 +2132,11 @@ The params can be destructuring bindings, see `(doc let)` for details."}
               ["(hi \"Jane\")" nil "Hi, Jane!"]]
    :added "0.1"}
   [nm & sigs]
-  `(pixie.stdlib.internal/-defprotocol (quote ~nm)
-                                       ~(reduce (fn [r sig]
-                                                  (conj r `(quote ~(first sig))))
+  `(pixie.stdlib.internal/-defprotocol  (quote ~nm)
+                                       ~(reduce  (fn  [r [method-name fn-sig third fourth]]
+                                                   (let [variadicity (when (map? third)
+                                                                       (get third :variadicity))]
+                                                   (conj r `(quote [~method-name ~(or variadicity 1)]))))
                                                 []
                                                 sigs)))
 
@@ -2171,7 +2179,8 @@ Expands to calls to `extend-type`."
   ; tps is used to ensure protocols are extended in order
   (let [[_ tps exts] (reduce (fn [[tp tps res] extend-body]
                                (cond
-                                (symbol? extend-body) [extend-body (conj tps extend-body) (assoc res extend-body [])]
+                                (or (instance? Symbol extend-body)
+                                    (vector? extend-body)) [extend-body (conj tps extend-body) (assoc res extend-body [])]
                                 :else [tp tps (update-in res [tp] conj extend-body)]))
                              [nil [] {}]
                              extensions)
@@ -2455,3 +2464,84 @@ Calling this function on something that is not ISeqable returns a seq with that 
   (fn [v] (str "<Namespace " (name v) ">")))
 
 (extend -repr Namespace -str)
+
+(defn bool?
+  [x]
+  (instance? Bool x))
+
+(defprotocol IComparable
+  (-compare [x y]
+    {:variadicity 2}
+    "Compare to objects returing 0 if the same -1 with x is logically smaller than y and 1 if x is logically larger"))
+
+(defn compare-numbers
+  [x y]
+  (cond
+    (> x y) 1
+    (< x y) -1
+    :else 0))
+
+(defn compare-counted
+  [x y]
+  (if (= x y)
+    0
+    (let [min-length (min (count x) (count y))]
+      (loop [n 0]
+        (if (not= min-length n)
+          (let [diff (-compare (nth x n) 
+                               (nth y n))]
+            (if-not (zero? diff)
+              diff
+              (recur (inc n))))
+          ;; We have compared all characters of the smallest string
+          ;; against the largest string.
+          ;; If equal lengths 0 otherwise -1 or 1
+          (compare-numbers (count x) (count y)))))))
+
+(defn compare-named
+  [x y]
+  (if (= x y)
+    0
+    (compare-counted (str x) (str y))))
+
+(extend-protocol IComparable
+  [Number Number]
+  (-compare [x y]
+    (compare-numbers x y))
+
+  [Character Character]
+  (-compare [x y]
+    (compare-numbers (int x) (int y)))
+  
+  [PersistentVector PersistentVector]
+  (-compare [x y]
+    (compare-counted x y))
+
+  [String String]
+  (-compare [x y]
+    (compare-counted (str x) (str y)))
+
+  [Keyword Keyword]
+  (-compare [x y]
+    (compare-counted (str x) (str y)))
+
+  [Symbol Symbol]
+  (-compare [x y]
+    (compare-counted (str x) (str y)))
+
+  [Bool Bool]
+  (-compare [x y]
+    (cond
+      (= x y) 0
+      (and (true? x) (false? y)) 1
+      :else  -1))
+  
+  [Nil Nil]
+  (-compare [x y]
+    0))
+
+(defn compare
+  [x y]
+  (if (satisfies? IComparable x)
+    (-compare x y)
+    (throw [::ComparisonError (str x " does not satisfy IComparable")])))

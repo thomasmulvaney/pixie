@@ -628,12 +628,16 @@ class DefaultProtocolFn(NativeFn):
         pfn = self._pfn
         if isinstance(pfn, PolymorphicFn):
             protocol = pfn._protocol
+            assert isinstance(protocol, Protocol)
+            affirm(False, u"No override for " + tp._name + u" on " + self._pfn._name + u" in protocol " + protocol._name)
         elif isinstance(pfn, DoublePolymorphicFn):
             protocol = pfn._protocol
+            tp2 = args[1].type()
+            assert isinstance(tp2, object.Type)
+            assert isinstance(protocol, Protocol)
+            affirm(False, u"No override for [" + tp._name + u" " + tp2._name + u"] on " + self._pfn._name + u" in protocol " + protocol._name)
         else:
             assert False
-        assert isinstance(protocol, Protocol)
-        affirm(False, u"No override for " + tp._name + u" on " + self._pfn._name + u" in protocol " + protocol._name)
 
 
 class Protocol(object.Object):
@@ -743,7 +747,7 @@ class DoublePolymorphicFn(BaseCode):
     _type = object.Type(u"pixie.stdlib.DoublePolymorphicFn")
 
     def type(self):
-        return DefaultProtocolFn._type
+        return DoublePolymorphicFn._type
 
     _immutable_fields_ = ["_rev?"]
 
@@ -752,36 +756,129 @@ class DoublePolymorphicFn(BaseCode):
         self._name = name
         self._dict = {}
         self._rev = 0
+        # stored separately to allow ordered extending (e.g. more general protocols later)
+        self._protos1 = []
+        self._protos2 = []
         self._protocol = protocol
         self._default_fn = DefaultProtocolFn(self)
+        self._fn_cache = {}
         protocol.add_method(self)
 
     def extend2(self, tp1, tp2, fn):
+        assert isinstance(tp1, object.Type) or isinstance(tp1, Protocol)
+        assert isinstance(tp2, object.Type) or isinstance(tp2, Protocol)
+        #assert isinstance(fn, NativeFn)
+
         d1 = self._dict.get(tp1, None)
         if d1 is None:
             d1 = {}
             self._dict[tp1] = d1
         d1[tp2] = fn
+        if isinstance(tp1, Protocol):
+            self._protos1.append(tp1)
+        if isinstance(tp2, Protocol):
+            self._protos2.append(tp2)
         self._rev += 1
+        # cache keys are [t1, t2] pairs for DoublePolymorphic
+        self._fn_cache = {}
         self._protocol.add_satisfies(tp1)
 
     def set_default_fn(self, fn):
         self._default_fn = fn
         self._rev += 1
+        self._fn_cache = {}
+
+    def _find_parent_result(self, tp1, tp2):
+        ## Search the entire object tree to find the function to execute
+        assert isinstance(tp2, object.Type)
+        assert isinstance(tp1, object.Type)
+
+        find_tp = tp1
+        d1 = None
+        while True:
+            result = self._dict.get(find_tp, None)
+            if result is not None:
+                d1 = result
+                break
+
+            for proto in self._protos1:
+                if proto.satisfies(find_tp):
+                    d1 = self._dict[proto]
+                    break
+
+            find_tp = find_tp._parent
+            if find_tp is None:
+                break
+
+            if d1 is not None:
+                break
+
+        if d1 is None:
+            return None
+
+        find_tp = tp2
+        while True:
+            result = d1.get(find_tp, None)
+            if result is not None:
+                return result
+
+            for proto in self._protos2:
+                if proto.satisfies(find_tp):
+                    return d1[proto]
+
+            find_tp = find_tp._parent
+            if find_tp is None:
+                break
+
+        return None
+
+    def set_cache(self, tp1, tp2, fn):
+        assert isinstance(tp1, object.Type)
+        assert isinstance(tp2, object.Type)
+        #assert isinstance(fn, NativeFn)
+        cache1 = self._fn_cache.get(tp1, None)
+        if cache1 is None:
+            cache1 = {}
+            self._fn_cache[tp1] = cache1
+        cache1[tp2] = fn
+
+    def get_cached(self, tp1, tp2):
+        assert isinstance(tp1, object.Type)
+        assert isinstance(tp2, object.Type)
+
+        fn = None
+
+        cache1 = self._fn_cache.get(tp1, None)
+
+        if cache1:
+            fn = cache1.get(tp2, None)
+
+        return fn
 
     @elidable_promote()
-    def get_fn(self, tp1, tp2, _rev):
-        d1 = self._dict.get(tp1, None)
-        if d1 is None:
-            return self._default_fn
-        fn = d1.get(tp2, self._default_fn)
+    def get_protocol_fn(self, tp1, tp2, rev):
+        assert isinstance(tp1, object.Type)
+        assert isinstance(tp2, object.Type)
+        
+        d1 = None
+
+        # If the function is cached get use it
+        fn = self.get_cached(tp1, tp2)
+        if fn:
+            return promote(fn)
+        if fn is None:
+            fn = self._find_parent_result(tp1, tp2)
+
+            if fn is None:
+                fn = self._default_fn
+            self.set_cache(tp1, tp2, fn)
         return promote(fn)
 
     def invoke(self, args):
         affirm(len(args) >= 2, u"DoublePolymorphicFunctions take at least two args")
         a = args[0].type()
         b = args[1].type()
-        fn = self.get_fn(a, b, self._rev)
+        fn = self.get_protocol_fn(a, b, self._rev)
         return fn.invoke(args)
 
 

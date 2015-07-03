@@ -87,6 +87,9 @@ class Type(Object):
     def type(self):
         return Type._type
 
+    def parent(self):
+        return self._parent
+
     def add_subclass(self, tp):
         self._subclasses.append(tp)
 
