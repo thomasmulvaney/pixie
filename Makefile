@@ -22,7 +22,7 @@ build_with_jit: fetch_externals
 	$(PYTHON) $(EXTERNALS)/pypy/rpython/bin/rpython $(COMMON_BUILD_OPTS) --opt=jit target.py
 	make compile_basics
 
-build_no_jit: fetch_externals
+build_no_jit:
 	$(PYTHON) $(EXTERNALS)/pypy/rpython/bin/rpython $(COMMON_BUILD_OPTS) target.py
 	make compile_basics
 

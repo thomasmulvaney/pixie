@@ -92,7 +92,21 @@ class Type(Object):
 
     def add_subclass(self, tp):
         self._subclasses.append(tp)
+  
+    # given a parent type returns true if this is a subclass
+    def issubclass(self, parent_tp):
+        assert isinstance(parent_tp, Type)
+        tp = self
+        
+        while True:
+            if tp == parent_tp:
+                return True
+            else:
+                tp = tp.parent()
 
+            if tp is None:
+                return False
+            
     def subclasses(self):
         return self._subclasses
 

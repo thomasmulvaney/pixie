@@ -741,6 +741,76 @@ class PolymorphicFn(BaseCode):
             ex._ex._trace.append(object.PolymorphicCodeInfo(self._name, args[0].type()))
             raise
 
+class PolymorphicFnTree(py_object):
+    def __init__(self, variadicity):
+        self._varidacity = variadicity
+        # The dictionary is a tree of depth equal to
+        # variadicity. Leaves are functions, the
+        # nodes are Types or Protocols.
+        #
+        # (T or P) -> (T or P) -> Fn
+        #
+        # Given a set of types the path to a function
+        # should prefer the following order
+        #   1. instance obj, T
+        #   2. instance parent(obj), T
+        #
+        # If there are protocols:
+        #   3. satisfies obj, P  
+
+        self._dict = {}
+
+    def add_fn(self, tp_or_proto_list, fn):
+        assert len(tp_or_proto_list) == self._varidacity
+
+        dict = self._dict
+        for i in range(0, len(tp_or_proto_list)):
+            tp_or_proto = tp_or_proto_list[i]
+            assert isinstance(tp_or_proto, object.Type) or isinstance(tp_or_proto, Protocol)
+
+            # if we are at the end of the list set the current
+            # dictionary to the function
+            if (i + 1) == len(tp_or_proto_list):
+                dict[tp_or_proto] = fn
+            else:
+                d = dict.get(tp_or_proto, None)
+                if d is None:
+                    d = {}
+                    dict[tp_or_proto] = d
+                dict = d
+
+    # Given a type and a depth 
+    def lookup_fn_for_type(self, tp_list, dict, depth):
+
+        find_tp = tp_list[depth]
+        result_fn = None
+
+        while True:
+            result = dict.get(find_tp, None)
+            if result is not None:
+                if isinstance(result, NativeFn):
+                    return result
+                else:
+                    result_fn = self.lookup_fn_for_type(tp_list, result, depth + 1)
+                    if result_fn:
+                        return result_fn
+
+            #for type_or_proto in dict.keys():
+            #    if isinstance(type_or_proto, Protocol):
+            #        proto = type_or_proto
+            #        if proto.satisfies(find_tp):
+            #            result_fn = self.lookup_fn_for_type(tp_list, dict[proto], depth + 1)
+            #            if result_fn:
+            #                return result_fn
+
+            find_tp = find_tp._parent
+            if find_tp is None:
+                break
+
+        return None
+
+    def find_fn(self, tp_list):
+        return self.lookup_fn_for_type(tp_list, self._dict, 0) 
 
 class DoublePolymorphicFn(BaseCode):
     """A function that is polymorphic on the first two arguments"""
@@ -754,7 +824,7 @@ class DoublePolymorphicFn(BaseCode):
     def __init__(self, name, protocol):
         BaseCode.__init__(self)
         self._name = name
-        self._dict = {}
+        self._fn_tree = PolymorphicFnTree(2)
         self._rev = 0
         # stored separately to allow ordered extending (e.g. more general protocols later)
         self._protos1 = []
@@ -767,19 +837,9 @@ class DoublePolymorphicFn(BaseCode):
     def extend2(self, tp1, tp2, fn):
         assert isinstance(tp1, object.Type) or isinstance(tp1, Protocol)
         assert isinstance(tp2, object.Type) or isinstance(tp2, Protocol)
-        #assert isinstance(fn, NativeFn)
 
-        d1 = self._dict.get(tp1, None)
-        if d1 is None:
-            d1 = {}
-            self._dict[tp1] = d1
-        d1[tp2] = fn
-        if isinstance(tp1, Protocol):
-            self._protos1.append(tp1)
-        if isinstance(tp2, Protocol):
-            self._protos2.append(tp2)
-        self._rev += 1
-        # cache keys are [t1, t2] pairs for DoublePolymorphic
+        self._fn_tree.add_fn([tp1, tp2], fn)
+
         self._fn_cache = {}
         self._protocol.add_satisfies(tp1)
 
@@ -803,7 +863,7 @@ class DoublePolymorphicFn(BaseCode):
 
             for proto in self._protos1:
                 if proto.satisfies(find_tp):
-                    d1 = self._dict[proto]
+                    d1 = self._dict.get(proto, None)
                     break
 
             find_tp = find_tp._parent
@@ -824,7 +884,7 @@ class DoublePolymorphicFn(BaseCode):
 
             for proto in self._protos2:
                 if proto.satisfies(find_tp):
-                    return d1[proto]
+                    return d1.get(proto, None)
 
             find_tp = find_tp._parent
             if find_tp is None:
@@ -864,14 +924,14 @@ class DoublePolymorphicFn(BaseCode):
 
         # If the function is cached get use it
         fn = self.get_cached(tp1, tp2)
-        if fn:
-            return promote(fn)
         if fn is None:
-            fn = self._find_parent_result(tp1, tp2)
+            fn = self._fn_tree.find_fn([tp1, tp2])
 
             if fn is None:
+                print("Using default")
                 fn = self._default_fn
             self.set_cache(tp1, tp2, fn)
+
         return promote(fn)
 
     def invoke(self, args):
