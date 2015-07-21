@@ -589,9 +589,9 @@ def refer(ns, refer, alias):
 def refer_symbol(ns, sym, var):
     from pixie.vm.symbol import Symbol
 
-    affirm(isinstance(ns, code.Namespace), u"First argument must be a namespace")
+    affirm(isinstance(ns, Namespace), u"First argument must be a namespace")
     affirm(isinstance(sym, Symbol) and rt.namespace(sym) is None, u"Second argument must be a non-namespaced symbol")
-    affirm(isinstance(var, code.Var), u"Third argument must be a var")
+    affirm(isinstance(var, Var), u"Third argument must be a var")
 
     ns.add_refer_symbol(sym, var)
     return nil
@@ -707,7 +707,7 @@ def _throw(ex):
 
 @as_var("resolve-in")
 def _var(ns, nm):
-    affirm(isinstance(ns, code.Namespace), u"First argument to resolve-in must be a namespace")
+    affirm(isinstance(ns, Namespace), u"First argument to resolve-in must be a namespace")
     var = ns.resolve(nm)
     return var if var is not None else nil
 
