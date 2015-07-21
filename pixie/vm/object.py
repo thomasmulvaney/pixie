@@ -222,7 +222,6 @@ class NativeCodeInfo(ErrorInfo):
 
     def trace_map(self):
         from pixie.vm.string import String
-        from pixie.vm.numbers import Integer
         from pixie.vm.keyword import keyword
 
         tm = {keyword(u"type") : keyword(u"native")}
