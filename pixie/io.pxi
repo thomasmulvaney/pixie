@@ -47,8 +47,23 @@
   (assert (string? filename) "Filename must be a string")
   (->FileStream (fs_open filename uv/O_RDONLY 0) 0 (uv/uv_buf_t)))
 
+(defn buffered-read-line
+  "Read one line from input-stream for each invocation.
+   nil when all lines have been read"
+  [input-stream]
+  (let [line-feed (into #{} (map int [\newline \return]))]
+    (loop [acc []]
+      (let [ch (read-byte input-stream)]
+        (cond
+          (nil? ch) nil
+          (zero? ch) nil
 
-(defn read-line
+          (and (pos? ch) (not (line-feed ch)))
+          (recur (conj acc ch))
+
+          :else (transduce (map char) string-builder acc))))))
+
+(defn unbuffered-read-line
   "Read one line from input-stream for each invocation.
    nil when all lines have been read"
   [input-stream]
@@ -62,7 +77,16 @@
 
           (and (zero? len) (empty? acc)) nil
 
-          :else (apply str (map char acc)))))))
+          :else (transduce (map char) string-builder acc))))))
+
+(defn read-line
+  [input-stream]
+  (cond
+    (satisfies? IInputStream input-stream) 
+    (buffered-read-line (buffered-input-stream input-stream ))
+
+    (satisfies? IByteInputStream input-stream)
+    (buffered-read-line input-stream)))
 
 (defn line-seq
   "Returns the lines of text from input-stream as a lazy sequence of strings.
