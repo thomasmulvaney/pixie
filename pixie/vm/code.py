@@ -746,9 +746,54 @@ class DoublePolymorphicFn(BaseCode):
         self._default_fn = fn
         self._rev += 1
 
+    def _find_parent_fn(self, tp1, tp2):
+        ## Search the entire object tree to find the function to execute
+        assert isinstance(tp, object.Type)
+
+        
+        # Our dict maps (either Type, Proto) -> (either Type, Proto) -> Fn
+        #
+        # We should prefer to find the Fn via actual types first. 
+        # Then via Parent types. Then via protocols.
+        #
+        # Example 1:
+        # 
+        #   We have a protocol IFoo with method -foo which maps:
+        #
+        #   Integer  -> Integer  -> Fn1
+        #   Integer  -> Number   -> Fn2
+        #   Number   -> Integer  -> Fn3
+        #   IIndexed -> IIndexed -> Fn4
+        #
+        #  (-foo 1 1)     -> (Fn1 1 1)      Match on t1
+        #  (-foo 1 1.0)   -> (Fn2 1 1.0)    Match on t1, match on parent of t2
+        #  (-foo 1 1/2)   -> (Fn2 1 1/2)    Match on t1, match on parent of t2
+        #  (-foo 1.0 1)   -> (Fn3 1.0 1)    Match on parent of t1, match on t2
+        #  (-foo 1.0 1.0) -> No match
+        #  (-foo [1] [2]) -> (Fn4 [1] [2])  Match on protocol satisfied by t1, match on protocol satisfied by t2
+        #
+        #  For the time being, we will not DoublePolymorphics do not extend other protos
+        find_tp1 = tp1
+        while True:
+            tp2_dict = self._dict.get(find_tp1, None)
+            if tp2_dict is not None:
+                find_tp2 = tp2
+                result = tp2_dict.get(find_tp2, None)
+                if result is not None:
+                    return result
+
+                if proto.satisfies(find_tp):
+            return self._dict[proto]
+
+            find_tp = find_tp._parent
+            if find_tp is None:
+                break
+
+        return self._default_fn
+
     @elidable_promote()
     def get_fn(self, tp1, tp2, _rev):
-        d1 = self._dict.get(tp1, None)
+        d1 = self._find_parent_fn(tp1)
         if d1 is None:
             return self._default_fn
         fn = d1.get(tp2, self._default_fn)

@@ -2498,12 +2498,16 @@ If the number of arguments is even and no clause matches, throws an exception."
    :added "0.1"}
   [nm & sigs]
   `(pixie.stdlib.internal/-defprotocol  (quote ~nm)
+                                       (let [sigs
                                        ~(reduce  (fn  [r [method-name fn-sig third fourth]]
                                                    (let [variadicity (when (map? third)
                                                                        (get third :variadicity))]
-                                                   (conj r `(quote [~method-name ~(or variadicity 1)]))))
+                                                      (println ":::" method-name fn-sig third fourth)                    
+                                                     (conj r `(quote [~method-name ~(or variadicity 1)]))))
                                                 []
-                                                sigs)))
+                                                sigs)]
+                                         (println ">>>>" sigs (type (first sigs)))
+                                         sigs)))
 
 (defmacro extend-type
   {:doc "Extends the protocols to the given type.
@@ -3014,65 +3018,48 @@ Calling this function on something that is not ISeqable returns a seq with that 
   (-next  [coll] (-next  (seq coll))))
 
 (extend-protocol IComparable
-  [Number Number]
+  [IMath IMath]
   (-compare [x y]
-    (if (number? y)
-      (compare-numbers x y)
-      (throw [::ComparisonError (str "Cannot compare: " x " to " y)])))
+    (compare-numbers x y))
 
   [Character Character]
   (-compare [x y]
-    (if (char? y)
-      (compare-numbers (int x) (int y))
-      (throw [::ComparisonError (str "Cannot compare: " x " to " y)])))
+    (compare-numbers (int x) (int y)))
   
   [PersistentVector PersistentVector]
   (-compare [x y]
-    (if (vector? y)
-      (compare-counted x y)
-      (throw [::ComparisonError (str "Cannot compare: " x " to " y)])))
+    (compare-counted x y))
 
   [String String]
   (-compare [x y]
-    (if (string? y)
-      (compare-counted (str x) (str y))
-      (throw [::ComparisonError (str "Cannot compare: " x " to " y)])))
+    (compare-counted (str x) (str y)))
 
   [Keyword Keyword]
   (-compare [x y]
-    (if (keyword? y)
-      (compare-counted (str x) (str y))
-      (throw [::ComparisonError (str "Cannot compare: " x " to " y)])))
+    (compare-counted (str x) (str y)))
 
   [Symbol Symbol]
   (-compare [x y]
-    (if (symbol?  y)
-      (compare-counted (str x) (str y))
-      (throw [::ComparisonError (str "Cannot compare: " x " to " y)])))
+    (compare-counted (str x) (str y)))
 
   [Bool Bool]
   (-compare [x y]
-    (if (bool? y)
-      (cond
-        (= x y) 0
-        (and (true? x) (false? y)) 1
-        :else  -1))
-      (throw [::ComparisonError (str "Cannot compare: " x " to " y)]))
-
+    (cond
+      (= x y) 0
+      (and (true? x) (false? y)) 1
+      :else  -1))
+  
   [Nil Nil]
-  (-compare [x y]
-    (if (nil? y)
-      0
-      (throw [::ComparisonError (str "Cannot compare: " x " to " y)]))))
+  (-compare [x y] 0))
 
 (defn compare
   "Compares two objects. Returns 0 when x is equal to y, -1 when x is
   logically smaller than y, and 1 when x is logically larger. x must
   implement IComparable."
   [x y]
-  (if (satisfies? IComparable x y)
+  (if (satisfies? IComparable [x y])
     (-compare x y)
-    (throw [::ComparisonError (str x " does not satisfy IComparable")])))
+    (throw [::ComparisonError (str x " and " y " are not comparable with one another.")])))
 
 (defn vary-meta
   {:doc "Returns x with meta data updated with the application of f and args to it.
