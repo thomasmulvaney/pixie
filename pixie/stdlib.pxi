@@ -2975,6 +2975,12 @@ ex: (vary-meta x assoc :foo 42)"
   [x f & args]
   (with-meta x (apply f (meta x) args)))
 
+(defn trampoline [f]
+  (let [result (f)]
+    (if (fn? result)
+      (recur result)
+      result)))
+
 ;;; Sorting
 
 (defn -merge-sort-step
@@ -2992,8 +2998,8 @@ ex: (vary-meta x assoc :foo 42)"
   (if (> (count coll) 1)
     (let [[left right] (split-at (/ (count coll) 2) coll)]
       (-merge-sort-step comp-fn 
-                        (-merge-sort-split comp-fn left) 
-                        (-merge-sort-split comp-fn right) 
+                        (trampoline #(-merge-sort-split comp-fn left)) 
+                        (trampoline #(-merge-sort-split comp-fn right)) 
                         [])) 
     coll))
 
