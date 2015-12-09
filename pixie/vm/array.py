@@ -155,6 +155,7 @@ def aconcat(self, other):
 @as_var("alength")
 def alength(self):
     affirm(isinstance(self, Array), u"must be an Array")
+    assert isinstance(self, Array)
     return rt.wrap(len(self._list))
 
 @as_var("make-array")

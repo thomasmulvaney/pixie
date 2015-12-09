@@ -10,6 +10,7 @@ import rpython.rlib.jit as jit
 from rpython.rlib.rarithmetic import r_uint
 from rpython.rlib.objectmodel import we_are_translated
 import os.path as path
+import os as os
 import sys
 
 defprotocol("pixie.stdlib", "ISeq", ["-first", "-next"])
@@ -65,7 +66,7 @@ defprotocol("pixie.stdlib", "IMessageObject", ["-call-method", "-get-attr"])
 
 def maybe_mark_finalizer(self, tp):
     if self is _finalize_BANG_:
-        print "MARKING ", tp
+        os.write(2, "MARKING ", tp)
 
         tp.set_finalizer()
 
@@ -469,7 +470,7 @@ def load_pxic_file(filename):
     import pixie.vm.compiler as compiler
 
     if not we_are_translated():
-        print "Loading precompiled file while interpreted, this may take time"
+        os.write(2, "Loading precompiled file while interpreted, this may take time")
     with compiler.with_ns(u"user"):
         compiler.NS_VAR.deref().include_stdlib()
         rdr = Reader(f)
@@ -483,7 +484,7 @@ def load_pxic_file(filename):
             o.invoke([])
 
     if not we_are_translated():
-        print "done"
+        os.write(2, "done")
 
 
 @as_var("load-reader")
@@ -492,7 +493,7 @@ def load_reader(rdr):
     import pixie.vm.compiler as compiler
 
     if not we_are_translated():
-        print "Loading file while interpreted, this may take time"
+        os.write(2, "Loading file while interpreted, this may take time")
 
     val = PXIC_WRITER.deref()
     if val is nil:
@@ -537,7 +538,7 @@ def load_reader(rdr):
 
 
     if not we_are_translated():
-        print "done"
+        os.write(2, "done")
 
     return nil
 
@@ -709,7 +710,7 @@ def _try_catch(main_fn, catch_fn, final):
         if not isinstance(ex, WrappedException):
             if isinstance(ex, Exception):
                 if not we_are_translated():
-                    print "Python Error Info: ", ex.__dict__, ex
+                    os.write(2, "Python Error Info: ", ex.__dict__, ex)
                     raise
                 ex = RuntimeException(rt.wrap(u"Internal error: " + unicode(str(ex))), keyword(u"pixie.stdlib/InternalError"))
             else:
