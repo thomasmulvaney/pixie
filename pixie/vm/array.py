@@ -148,12 +148,13 @@ def aslice(self, offset):
 
 @as_var("aconcat")
 def aconcat(self, other):
-    assert isinstance(self, Array) and isinstance(other, Array)
+    affirm((isinstance(self, Array) and isinstance(other, Array)),
+            u"both arguments to must be Arrays")
     return Array(self._list + other._list)
 
 @as_var("alength")
 def alength(self):
-    assert isinstance(self, Array)
+    affirm(isinstance(self, Array), u"must be an Array")
     return rt.wrap(len(self._list))
 
 @as_var("make-array")

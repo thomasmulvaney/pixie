@@ -2,9 +2,11 @@
   (require pixie.test :as t))
 
 (t/deftest test-array-creation
+  (t/assert-throws? (make-array :a))
   (let [a (make-array 10)]
     (t/assert= (count a) 10)
     (t/assert= (alength a) 10)
+    (t/assert-throws? (alength [1 2 3]))
     (foreach [x a]
              (t/assert= x nil))))
 
@@ -22,6 +24,8 @@
 (t/deftest test-aconcat
   (let [a1 (make-array 10)
         a2 (make-array 10)]
+    (t/assert-throws? (aconcat a1 []))
+    (t/assert-throws? (aconcat [] a1))
     (t/assert= (alength (aconcat a1 a2)) (+ (alength a1) (alength a2)))
 
     (dotimes [i 10]
