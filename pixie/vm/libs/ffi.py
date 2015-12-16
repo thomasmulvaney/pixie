@@ -93,8 +93,8 @@ class FFIFn(object.Object):
 
     def __init__(self, name, fn_ptr, c_fn_type):
         assert isinstance(c_fn_type, CFunctionType)
-        self._rev = 0
         self._name = name
+        print("name", self._name)
         self._f_ptr = fn_ptr
         self._c_fn_type = c_fn_type
 
@@ -193,6 +193,7 @@ def _ffi_fn__args(args):
 
     tp = CFunctionType(new_args, ret_type, is_variadic)
     nm = rt.name(nm)
+    print("new ffi", nm)
     f = FFIFn(nm, lib.get_fn_ptr(nm), tp)
     return f
 
@@ -390,7 +391,7 @@ class CCharP(CType):
         if casted[0] == lltype.nullptr(rffi.CCHARP.TO):
             return nil
         else:
-            return String(unicode(rffi.charp2str(casted[0])))
+            return CharP(casted[0])
 
     def ffi_set_value(self, ptr, val):
         if isinstance(val, String):
@@ -422,7 +423,7 @@ class CCharP(CType):
 
     def ffi_type(self):
         return clibffi.ffi_type_pointer
-CCharP()
+ccharp = CCharP()
 
 class CCharPToken(Token):
     def __init__(self, raw):
@@ -490,6 +491,41 @@ class CVoidP(CType):
     def ffi_type(self):
         return clibffi.ffi_type_pointer
 cvoidp = CVoidP()
+
+class CharP(PointerType):
+    _type = ccharp
+    def type(self):
+        return CharP._type
+
+    def __init__(self, raw_data):
+        print("&&&&INIT&&&&&")
+        self._raw_data = raw_data
+
+    def read_string(self):
+        return String(unicode(rffi.charp2str(self_.raw_data)))
+
+    def read_length(self, length):
+        return String(unicode(rffi.charp2str(self_.raw_data), length))
+    
+    def free_data(self):
+        lltype.free(self._raw_data, flavor="raw")
+
+
+@as_var(u"pixie.ffi", u"charp->str")
+def _charp_to_str(charp):
+    affirm(isinstance(charp, CharP), "Accepts a charp")
+    charp.read_string()
+
+
+@as_var(u"pixie.ffi", u"charp->str-n")
+def _charp_to_str(charp, n):
+    affirm(isinstance(charp, CharP), "Accepts a charp")
+    affirm(isinstance(charp, Integer), "Accepts a charp")
+    charp.read_length(n)
+
+@extend(proto._dispose_BANG_, cvoidp)
+def _dispose_voidp(self):
+    self.free_data()
 
 class VoidP(PointerType):
     _type = cvoidp
@@ -704,11 +740,13 @@ class CFunctionType(object.Type):
         self._is_variadic = is_variadic
         self._cd = CifDescrBuilder(self._arg_types, self._ret_type).rawallocate()
 
-    def ffi_get_value(self, ptr):
-        casted = rffi.cast(rffi.VOIDPP, ptr)
-        return FFIFn(u"<unknown>", casted[0], self)
+    #def ffi_get_value(self, ptr):
+    #    print("Called..............")
+    #    casted = rffi.cast(rffi.VOIDPP, ptr)
+    #    return FFIFn(u"<unknown>", casted[0], self)
 
     def ffi_set_value(self, ptr, val):
+        print(self)
         if isinstance(val, CCallback):
             casted = rffi.cast(rffi.VOIDPP, ptr)
             casted[0] = val.get_raw_closure()
