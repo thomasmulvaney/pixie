@@ -189,10 +189,11 @@ return 0;
 
 (defn run-infer [config cmds]
   (println "Running infer...")
-  #_(println (ffi/charp->str-n (mkdtemp tempdir-template) 7))
-  (let [tempdir "/temp/ffiXXXXX" #_(ffi/charp->str (mkdtemp tempdir-template))
+  (println (ffi/charp->str-n (mkdtemp tempdir-template) 7))
+  (let [tempdir "tmp/ffiXXX" #_(ffi/charp->str (mkdtemp tempdir-template))
         infile (str tempdir "/ffi.cpp")
         outfile (str tempdir "/ffi.out")]
+    ()
     (println "temp:" tempdir)
     (io/spit infile (str (start-string)
                          (apply str (map emit-infer-code
@@ -212,7 +213,7 @@ return 0;
           gen (vec (map generate-code cmds result))]
       (unlink infile)
       (unlink outfile)
-      (rmdir tempdir)
+      #_(rmdir tempdir)
       `(do ~@gen))))
 
 (defn full-lib-name [library-name]

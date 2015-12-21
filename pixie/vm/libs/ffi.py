@@ -519,6 +519,10 @@ class CharP(PointerType):
         print("FREEing CHARP")
         lltype.free(self._raw_data, flavor="raw")
 
+    def ffi_type(self):
+        print("Called type on CharP pointer type")
+        return clibffi.ffi_type_pointer
+
 
 @as_var(u"pixie.ffi", u"charp->str")
 def _charp_to_str(charp):
@@ -535,7 +539,7 @@ def _charp_to_str(charp, n):
     affirm(isinstance(n, Integer), u"Accepts a charp")
     charp.read_length(n)
 
-@extend(proto._dispose_BANG_, cvoidp)
+@extend(proto._dispose_BANG_, ccharp)
 def _dispose_voidp(self):
     self.free_data()
 
