@@ -543,6 +543,7 @@ class VoidP(PointerType):
     _type = cvoidp
 
     def __init__(self, raw_data):
+        print("VoidP created ********")
         self._raw_data = raw_data
 
     def raw_data(self):
