@@ -189,8 +189,8 @@ return 0;
 
 (defn run-infer [config cmds]
   (println "Running infer...")
-  (println (ffi/charp->str-n (mkdtemp tempdir-template) 7))
-  (let [tempdir (ffi/charp->str (mkdtemp tempdir-template))
+  #_(println (ffi/charp->str-n (mkdtemp tempdir-template) 7))
+  (let [tempdir "/temp/ffiXXXXX" #_(ffi/charp->str (mkdtemp tempdir-template))
         infile (str tempdir "/ffi.cpp")
         outfile (str tempdir "/ffi.out")]
     (println "temp:" tempdir)
@@ -198,6 +198,7 @@ return 0;
                          (apply str (map emit-infer-code
                                          cmds))
                          (end-string)))
+    (println "done spitting")
     (println @load-paths)
     (let [cmd-str (str "c++ "
                        (apply str (interpose " " pixie.platform/c-flags))
@@ -274,6 +275,7 @@ return 0;
 
                          " -o "
                          lib-name)]
+    (println "==========================================")
     (io/spit c-name source)
     (println cmd)
     (io/run-command cmd)))

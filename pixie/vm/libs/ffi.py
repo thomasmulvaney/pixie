@@ -117,7 +117,7 @@ class FFIFn(object.Object):
         cd = self._c_fn_type.get_cd()
         offset_p = rffi.ptradd(exb, jit.promote(cd.exchange_result))
         ret_val = self._c_fn_type._ret_type.ffi_get_value(offset_p)
-        print("got ret value...")
+        print("got ret value...", ret_val.type().name())
         return ret_val
 
     @jit.unroll_safe
