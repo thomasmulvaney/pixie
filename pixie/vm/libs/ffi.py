@@ -18,7 +18,7 @@ from rpython.rlib.jit_libffi import jit_ffi_call, CIF_DESCRIPTION, CIF_DESCRIPTI
 import rpython.rlib.jit_libffi as jit_libffi
 from rpython.rlib.objectmodel import keepalive_until_here, we_are_translated
 import rpython.rlib.jit as jit
-from rpython.rlib.rarithmetic import intmask
+from rpython.rlib.rarithmetic import intmask, r_int
 
 
 """
@@ -117,6 +117,7 @@ class FFIFn(object.Object):
         cd = self._c_fn_type.get_cd()
         offset_p = rffi.ptradd(exb, jit.promote(cd.exchange_result))
         ret_val = self._c_fn_type._ret_type.ffi_get_value(offset_p)
+        print("got ret value...")
         return ret_val
 
     @jit.unroll_safe
@@ -387,10 +388,12 @@ class CCharP(CType):
         CType.__init__(self, u"pixie.stdlib.CCharP")
 
     def ffi_get_value(self, ptr):
+        print("casting:")
         casted = rffi.cast(rffi.CCHARPP, ptr)
         if casted[0] == lltype.nullptr(rffi.CCHARP.TO):
             return nil
         else:
+            print("&&&Called...", casted[0], casted[0], rffi.charp2strn(casted[0], 3))
             return CharP(casted[0])
 
     def ffi_set_value(self, ptr, val):
@@ -417,12 +420,13 @@ class CCharP(CType):
             to_name = rt.name(rt.str(self))
             affirm(False, u"Cannot encode " + frm_name + u" as " + to_name)
 
-
     def ffi_size(self):
         return rffi.sizeof(rffi.CCHARP)
 
     def ffi_type(self):
+        print("CCharP type called.")
         return clibffi.ffi_type_pointer
+
 ccharp = CCharP()
 
 class CCharPToken(Token):
@@ -431,8 +435,6 @@ class CCharPToken(Token):
 
     def finalize_token(self):
         rffi.free_charp(self._raw)
-
-
 
 class CVoid(CType):
     def __init__(self):
@@ -484,12 +486,12 @@ class CVoidP(CType):
             to_name = rt.name(rt.str(self))
             affirm(False, u"Cannot encode " + frm_name + u" as " + to_name)
 
-
     def ffi_size(self):
         return rffi.sizeof(rffi.VOIDP)
 
     def ffi_type(self):
         return clibffi.ffi_type_pointer
+
 cvoidp = CVoidP()
 
 class CharP(PointerType):
@@ -498,29 +500,39 @@ class CharP(PointerType):
         return CharP._type
 
     def __init__(self, raw_data):
-        print("&&&&INIT&&&&&")
+        print("&&&&INIT&&&&&", raw_data)
         self._raw_data = raw_data
 
     def read_string(self):
-        return String(unicode(rffi.charp2str(self_.raw_data)))
+        print("read_string")
+        s = rffi.charp2str(self._raw_data)
+        print("val:", s)
+        return String(unicode(s))
 
     def read_length(self, length):
-        return String(unicode(rffi.charp2str(self_.raw_data), length))
-    
+        print("read_length", length.int_val(), self._raw_data)
+        s = rffi.charp2strn(self._raw_data, length.int_val())
+        print("val:", s)
+        return String(unicode(s))
+
     def free_data(self):
+        print("FREEing CHARP")
         lltype.free(self._raw_data, flavor="raw")
 
 
 @as_var(u"pixie.ffi", u"charp->str")
 def _charp_to_str(charp):
-    affirm(isinstance(charp, CharP), "Accepts a charp")
+    """Given a CharP return a string of all the characters up to the NULL char"""
+    affirm(isinstance(charp, CharP), u"Accepts a charp")
     charp.read_string()
 
 
 @as_var(u"pixie.ffi", u"charp->str-n")
 def _charp_to_str(charp, n):
-    affirm(isinstance(charp, CharP), "Accepts a charp")
-    affirm(isinstance(charp, Integer), "Accepts a charp")
+    """Given a CharP return a string of length 'n'. If the string terminates
+    earlier, a smaller string will be returned."""
+    affirm(isinstance(charp, CharP), u"Accepts a charp")
+    affirm(isinstance(n, Integer), u"Accepts a charp")
     charp.read_length(n)
 
 @extend(proto._dispose_BANG_, cvoidp)
@@ -538,6 +550,7 @@ class VoidP(PointerType):
 
     def free_data(self):
         lltype.free(self._raw_data, flavor="raw")
+
 
 @extend(proto._dispose_BANG_, cvoidp)
 def _dispose_voidp(self):
@@ -740,10 +753,10 @@ class CFunctionType(object.Type):
         self._is_variadic = is_variadic
         self._cd = CifDescrBuilder(self._arg_types, self._ret_type).rawallocate()
 
-    #def ffi_get_value(self, ptr):
-    #    print("Called..............")
-    #    casted = rffi.cast(rffi.VOIDPP, ptr)
-    #    return FFIFn(u"<unknown>", casted[0], self)
+    def ffi_get_value(self, ptr):
+        print("Called..............")
+        casted = rffi.cast(rffi.VOIDPP, ptr)
+        return FFIFn(u"<unknown>", casted[0], self)
 
     def ffi_set_value(self, ptr, val):
         print(self)

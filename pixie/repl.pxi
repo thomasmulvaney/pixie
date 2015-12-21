@@ -1,6 +1,7 @@
 (ns pixie.repl
   (:require [pixie.stacklets :as st]
             [pixie.io :as io]
+            [pixie.ffi       :as ffi]
             [pixie.ffi-infer :as f]))
 
 (f/with-config {:library "edit"
@@ -10,11 +11,13 @@
 
 
 (defn repl []
+  (println "============")
   (let [rdr (reader-fn (fn []
                          (let [prompt (if (= 0 pixie.stdlib/*reading-form*)
                                         (str (name pixie.stdlib/*ns*) " => ")
                                         "")
                                line (st/apply-blocking readline prompt)]
+                           (println (ffi/charp->str (type line)))
                            (if line
                              (do
                                (add_history line)

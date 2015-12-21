@@ -1,6 +1,6 @@
 (ns pixie.ffi-infer
-  (:require [pixie.io-blocking :as io]))
-
+  (:require [pixie.io-blocking :as io]
+            [pixie.ffi :as ffi]))
 
 (defn -add-rel-path [rel]
   (swap! load-paths conj (str (first @load-paths) "/" rel)))
@@ -188,9 +188,12 @@ return 0;
                            "/ffiXXXXXX"))
 
 (defn run-infer [config cmds]
-  (let [tempdir (mkdtemp tempdir-template)
+  (println "Running infer...")
+  (println (ffi/charp->str-n (mkdtemp tempdir-template) 7))
+  (let [tempdir (ffi/charp->str (mkdtemp tempdir-template))
         infile (str tempdir "/ffi.cpp")
         outfile (str tempdir "/ffi.out")]
+    (println "temp:" tempdir)
     (io/spit infile (str (start-string)
                          (apply str (map emit-infer-code
                                          cmds))
