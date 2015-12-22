@@ -4,27 +4,23 @@ from rpython.jit.codewriter.policy import JitPolicy
 from rpython.rlib.jit import JitHookInterface, Counters
 from rpython.rlib.rfile import create_stdio
 from rpython.annotator.policy import AnnotatorPolicy
-from pixie.vm.code import wrap_fn, NativeFn, intern_var, Var
+from pixie.vm.code import wrap_fn, NativeFn, intern_var 
 from pixie.vm.object import WrappedException
-from rpython.translator.platform import platform
 from pixie.vm.primitives import nil
 from pixie.vm.atom import Atom
 from pixie.vm.persistent_vector import EMPTY as EMPTY_VECTOR
-from pixie.vm.util import unicode_from_utf8, unicode_to_utf8
+from pixie.vm.util import unicode_from_utf8
 import sys
 import os
 import os.path as path
 import rpython.rlib.rpath as rpath
-import rpython.rlib.rpath as rposix
-from rpython.rlib.objectmodel import we_are_translated
-from rpython.jit.codewriter.policy import log
 
 class DebugIFace(JitHookInterface):
     def on_abort(self, reason, jitdriver, greenkey, greenkey_repr, logops, operations):
         # print "Aborted Trace, reason: ", Counters.counter_names[reason], logops, greenkey_repr
         pass
 
-import sys, pdb
+import pdb
 
 class Policy(JitPolicy, AnnotatorPolicy):
     def __init__(self):
@@ -33,6 +29,9 @@ class Policy(JitPolicy, AnnotatorPolicy):
 def jitpolicy(driver):
     return JitPolicy(jithookiface=DebugIFace())
 
+
+PROGRAM_NAME = intern_var(u"pixie.stdlib", u"program-name")
+PROGRAM_NAME.set_root(nil)
 
 PROGRAM_ARGUMENTS = intern_var(u"pixie.stdlib", u"program-arguments")
 PROGRAM_ARGUMENTS.set_root(nil)
@@ -47,7 +46,6 @@ class ReplFn(NativeFn):
 
     def inner_invoke(self, args):
         import pixie.vm.rt as rt
-        from pixie.vm.code import intern_var
         rt.load_ns(rt.wrap(u"pixie/repl.pxi"))
 
         repl = intern_var(u"pixie.repl", u"repl")
@@ -63,15 +61,15 @@ class BatchModeFn(NativeFn):
 
     def inner_invoke(self, args):
         import pixie.vm.rt as rt
-        import pixie.vm.persistent_vector as vector
 
         with with_ns(u"user"):
             NS_VAR.deref().include_stdlib()
 
-        acc = vector.EMPTY
+        acc = EMPTY_VECTOR
         for x in self._argv:
             acc = rt.conj(acc, rt.wrap(x))
 
+        PROGRAM_NAME.set_root(rt.wrap(self._file))
         PROGRAM_ARGUMENTS.set_root(acc)
 
         with with_ns(u"user"):
@@ -148,7 +146,6 @@ def run_load_stdlib():
 def load_stdlib():
     run_load_stdlib.invoke([])
 
-from pixie.vm.code import intern_var
 run_with_stacklets = intern_var(u"pixie.stacklets", u"run-with-stacklets")
 
 def init_vm(progname):
