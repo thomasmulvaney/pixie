@@ -759,13 +759,6 @@ def compile_yield(form, ctx):
     compile_form(arg, ctx)
     ctx.bytecode.append(code.YIELD)
 
-def compile_in_ns(form, ctx):
-    affirm(rt.count(form) == 2, u"in-ns requires an argument")
-    arg = rt.first(rt.next(form))
-    NS_VAR.set_value(code._ns_registry.find_or_make(rt.name(arg)))
-    NS_VAR.deref().include_stdlib()
-    compile_fn_call(form, ctx)
-
 def compile_local_macro(form, ctx):
     form = rt.next(form)
     binding = rt.first(form)
@@ -799,7 +792,6 @@ builtins = {u"fn*": compile_fn,
             u"var": compile_var,
             u"catch": compile_catch,
             u"this-ns-name": compile_this_ns,
-            u"in-ns": compile_in_ns, # yes, this is both a function and a compiler special form.
             u"yield": compile_yield,
             u"local-macro": compile_local_macro}
 
