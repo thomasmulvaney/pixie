@@ -186,14 +186,6 @@ class Context(object):
 class RecurPoint(object):
     pass
 
-class FunctionRecurPoint(RecurPoint):
-    def __init__(self):
-        pass
-
-    def emit(self, ctx, argc):
-        ctx.bytecode.append(code.RECUR)
-        ctx.bytecode.append(argc)
-
 class LoopRecurPoint(RecurPoint):
     def __init__(self, argc, ctx):
         self._argc = argc
@@ -532,8 +524,6 @@ def compile_fn_body(name, args, body, ctx):
 
     body = rt.list(rt.cons(LOOP, rt.cons(arg_syms, body)))
 
-    #new_ctx.push_recur_point(FunctionRecurPoint())
-
     new_ctx.disable_tail_call()
     if body is nil:
         compile_form(body, new_ctx)
@@ -635,7 +625,7 @@ def compile_quote(form, ctx):
 
 def compile_recur(form, ctx):
     form = form.next()
-    #affirm(ctx.can_tail_call, u"Can't recur in non-tail position")
+    affirm(ctx.can_tail_call, u"Can't recur in non-tail position")
     ctc = ctx.can_tail_call
     ctx.disable_tail_call()
     args = 0
@@ -644,8 +634,6 @@ def compile_recur(form, ctx):
         args += 1
         form = form.next()
 
-    #ctx.bytecode.append(code.RECUR)
-    #ctx.bytecode.append(r_uint(args))
     ctx.get_recur_point().emit(ctx, args)
     if ctc:
         ctx.enable_tail_call()
