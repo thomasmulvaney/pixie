@@ -3,7 +3,7 @@ from pixie.vm.object import runtime_error, get_type_by_name
 from rpython.rlib.runicode import str_decode_utf_8
 from pixie.vm.string import String
 from pixie.vm.keyword import Keyword, keyword
-from pixie.vm.symbol import Symbol, symbol
+from pixie.vm.symbol import Symbol 
 from pixie.vm.numbers import Integer, Float, BigInteger
 from pixie.vm.code import Code, Var, NativeFn, Namespace, intern_var
 import pixie.vm.code as code
@@ -160,7 +160,7 @@ def read_obj(rdr):
     elif tag == KEYWORD:
         return keyword(read_raw_string(rdr))
     elif tag == SYMBOL:
-        return symbol(read_raw_string(rdr))
+        return Symbol(read_raw_string(rdr))
     elif tag == LINE_PROMISE:
         lp = LinePromise()
         lp._chrs = None

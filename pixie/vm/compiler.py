@@ -186,6 +186,14 @@ class Context(object):
 class RecurPoint(object):
     pass
 
+class FunctionRecurPoint(RecurPoint):
+    def __init__(self):
+        pass
+
+    def emit(self, ctx, argc):
+        ctx.bytecode.append(code.RECUR)
+        ctx.bytecode.append(argc)
+
 class LoopRecurPoint(RecurPoint):
     def __init__(self, argc, ctx):
         self._argc = argc
@@ -335,7 +343,7 @@ def maybe_oop_invoke(form):
         affirm(rt.count(postfix) == 1, u" Attribute lookups must only have one argument")
         subject = rt.first(postfix)
         kw = keyword(rt.name(head)[2:])
-        fn = symbol.symbol(u"pixie.stdlib/-get-attr")
+        fn = symbol.Symbol(u"pixie.stdlib/-get-attr")
         return create_from_list([fn, subject, kw])
 
     elif isinstance(rt.first(form), symbol.Symbol) and rt.name(head).startswith("."):
@@ -343,7 +351,7 @@ def maybe_oop_invoke(form):
         postfix = rt.next(rt.next(form))
         form = cons(keyword(rt.name(head)[1:]), postfix)
         form = cons(subject, form)
-        form = cons(symbol.symbol(u"pixie.stdlib/-call-method"), form)
+        form = cons(symbol.Symbol(u"pixie.stdlib/-call-method"), form)
         return form
 
     else:
@@ -482,7 +490,7 @@ def compile_fn(form, ctx):
         name = rt.first(form)
         form = rt.next(form)
     else:
-        name = symbol.symbol(default_fn_name)
+        name = symbol.Symbol(default_fn_name)
 
 
 
@@ -508,7 +516,7 @@ def compile_fn(form, ctx):
     if rt.meta(name) is not nil:
         compile_meta(rt.meta(name), ctx)
 
-LOOP = symbol.symbol(u"loop*")
+LOOP = symbol.Symbol(u"loop*")
 
 def compile_fn_body(name, args, body, ctx):
     new_ctx = Context(rt.name(name), rt.count(args), ctx)
@@ -523,6 +531,8 @@ def compile_fn_body(name, args, body, ctx):
             arg_syms = rt.conj(rt.conj(arg_syms, sym), sym)
 
     body = rt.list(rt.cons(LOOP, rt.cons(arg_syms, body)))
+
+    #new_ctx.push_recur_point(FunctionRecurPoint())
 
     new_ctx.disable_tail_call()
     if body is nil:
@@ -625,7 +635,7 @@ def compile_quote(form, ctx):
 
 def compile_recur(form, ctx):
     form = form.next()
-    affirm(ctx.can_tail_call, u"Can't recur in non-tail position")
+    #affirm(ctx.can_tail_call, u"Can't recur in non-tail position")
     ctc = ctx.can_tail_call
     ctx.disable_tail_call()
     args = 0
@@ -634,6 +644,8 @@ def compile_recur(form, ctx):
         args += 1
         form = form.next()
 
+    #ctx.bytecode.append(code.RECUR)
+    #ctx.bytecode.append(r_uint(args))
     ctx.get_recur_point().emit(ctx, args)
     if ctc:
         ctx.enable_tail_call()

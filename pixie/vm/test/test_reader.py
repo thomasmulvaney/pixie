@@ -2,7 +2,7 @@ from pixie.vm.reader import read_inner, StringReader
 from pixie.vm.object import Object
 from pixie.vm.cons import Cons
 from pixie.vm.numbers import Integer
-from pixie.vm.symbol import symbol, Symbol
+from pixie.vm.symbol import Symbol
 from pixie.vm.string import Character
 from pixie.vm.persistent_vector import PersistentVector
 from pixie.vm.persistent_hash_map import PersistentHashMap
@@ -12,12 +12,12 @@ import unittest
 
 
 data = {u"(1 2)": (1, 2,),
-        u"(foo)": (symbol(u"foo"),),
-        u"foo": symbol(u"foo"),
+        u"(foo)": (Symbol(u"foo"),),
+        u"foo": Symbol(u"foo"),
         u"1": 1,
         u"2": 2,
         u"((42))": ((42,),),
-        u"(platform+ 1 2)": (symbol(u"platform+"), 1, 2),
+        u"(platform+ 1 2)": (Symbol(u"platform+"), 1, 2),
         u"[42 43 44]": [42, 43, 44],
         u"(1 2 ; 7 8 9\n3)": (1, 2, 3,),
         u"(1 2 ; 7 8 9\r\n3)": (1, 2, 3,),

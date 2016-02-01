@@ -6,7 +6,7 @@ from pixie.vm.code import as_var
 from pixie.vm.primitives import nil, true, false
 import pixie.vm.numbers as numbers
 from pixie.vm.cons import cons
-from pixie.vm.symbol import symbol, Symbol
+from pixie.vm.symbol import Symbol
 from pixie.vm.keyword import keyword, Keyword
 import pixie.vm.rt as rt
 from pixie.vm.persistent_vector import EMPTY as EMPTY_VECTOR
@@ -34,7 +34,7 @@ GEN_SYM_ENV = code.intern_var(u"pixie.stdlib.reader", u"*gen-sym-env*")
 GEN_SYM_ENV.set_dynamic()
 GEN_SYM_ENV.set_root(EMPTY_MAP)
 
-ARG_AMP = symbol(u"&")
+ARG_AMP = Symbol(u"&")
 ARG_MAX = keyword(u"max-arg")
 ARG_ENV = code.intern_var(u"pixie.stdlib.reader", u"*arg-env*")
 ARG_ENV.set_dynamic()
@@ -310,7 +310,7 @@ class UnmatchedMapReader(ReaderHandler):
 class QuoteReader(ReaderHandler):
     def invoke(self, rdr, ch):
         itm = read_inner(rdr, True)
-        return cons(symbol(u"quote"), cons(itm))
+        return cons(Symbol(u"quote"), cons(itm))
 
 class KeywordReader(ReaderHandler):
     def fqd(self, itm):
@@ -420,17 +420,17 @@ class LiteralCharacterReader(ReaderHandler):
 
 class DerefReader(ReaderHandler):
     def invoke(self, rdr, ch):
-        return rt.cons(symbol(u"-deref"), rt.cons(read_inner(rdr, True), nil))
+        return rt.cons(Symbol(u"-deref"), rt.cons(read_inner(rdr, True), nil))
 
 
-QUOTE = symbol(u"quote")
-UNQUOTE = symbol(u"unquote")
-UNQUOTE_SPLICING = symbol(u"unquote-splicing")
-APPLY = symbol(u"apply")
-CONCAT = symbol(u"concat")
-SEQ = symbol(u"seq")
-LIST = symbol(u"list")
-HASHMAP = symbol(u"hashmap")
+QUOTE = Symbol(u"quote")
+UNQUOTE = Symbol(u"unquote")
+UNQUOTE_SPLICING = Symbol(u"unquote-splicing")
+APPLY = Symbol(u"apply")
+CONCAT = Symbol(u"concat")
+SEQ = Symbol(u"seq")
+LIST = Symbol(u"list")
+HASHMAP = Symbol(u"hashmap")
 
 def is_unquote(form):
     return True if rt._satisfies_QMARK_(rt.ISeq.deref(), form) \
@@ -601,7 +601,7 @@ class FnReader(ReaderHandler):
                 args = rt.conj(args, ARG_AMP)
                 args = rt.conj(args, rest_arg)
 
-            return rt.cons(symbol(u"fn*"), rt.cons(args, rt.cons(form, nil)))
+            return rt.cons(Symbol(u"fn*"), rt.cons(args, rt.cons(form, nil)))
         finally:
             ARG_ENV.set_value(nil)
 
@@ -765,7 +765,7 @@ def read_symbol(rdr, ch):
         return false
     if sym_str == u"nil":
         return nil
-    return symbol(sym_str)
+    return Symbol(sym_str)
 
 class EOF(object.Object):
     _type = object.Type(u"EOF")
