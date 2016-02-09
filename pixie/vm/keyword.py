@@ -7,9 +7,6 @@ from pixie.vm.code import extend, as_var
 class Keyword(NamedObject):
     _type = Type(u"pixie.stdlib.Keyword")
 
-    def type(self):
-        return Keyword._type
-
 class KeywordCache(object):
     def __init__(self):
         self._cache = {}

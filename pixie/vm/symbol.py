@@ -9,9 +9,6 @@ import pixie.vm.rt as rt
 class Symbol(NamedObject):
     _type = object.Type(u"pixie.stdlib.Symbol")
 
-    def type(self):
-        return Symbol._type
-
     def with_meta(self, meta):
         return Symbol(self._str, meta)
 

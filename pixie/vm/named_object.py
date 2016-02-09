@@ -3,8 +3,6 @@ from pixie.vm.primitives import nil
 import pixie.vm.rt as rt
 import pixie.vm.util as util
 from rpython.rlib.rarithmetic import intmask
-import pixie.vm.stdlib as proto
-from pixie.vm.code import extend, as_var
 
 class NamedObject(object.Object):
     def __init__(self, s, meta=nil):
