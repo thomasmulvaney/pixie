@@ -485,6 +485,26 @@
                 '(0 1 2 3 4 5 6 7 8 9))
              true))
 
+(t/deftest test-ns
+  ;; Create a namespace called foo
+  (in-ns :foo)
+  (eval '(def bar :humbug))
+  (eval '(defn baz  [x y]  (+ x y)))
+  ;; Back into the text namespace
+  (in-ns :pixie.tests.test-stdlib)
+  (t/assert= (set  (keys  (ns-map 'foo)))
+             #{'bar 'baz}))
+
+(t/deftest test-ns-aliases
+  (in-ns :ns-to-require)
+  (in-ns :my-fake-ns)
+  (require ns-to-require :as some-alias)
+  (in-ns :pixie.tests.test-stdlib)
+  (t/assert= {'some-alias  (the-ns 'ns-to-require)
+              'pixie.stdlib  (the-ns 'pixie.stdlib)}
+             (ns-aliases  (the-ns 'my-fake-ns))))
+
+
 (t/deftest test-while
   (t/assert=  (while (pos? 0) true ) nil)
   (t/assert=  (while (pos? 0) false) nil)
@@ -674,6 +694,7 @@
   (t/assert-throws? RuntimeException
     "proto must be a Protocol"
     (satisfies? [IIndexed :also-not-a-proto] [1 2]))
+  (in-ns :pixie.tests.test-stdlib)
   (defprotocol IFoo (foo [this]))
   (extend-protocol IFoo
     Number
