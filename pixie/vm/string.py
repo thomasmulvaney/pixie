@@ -1,5 +1,5 @@
 import pixie.vm.rt as rt
-from pixie.vm.object import Object, Type, affirm
+from pixie.vm.object import Object, Type, affirm, runtime_error
 from pixie.vm.code import extend, as_var, wrap_fn
 from pixie.vm.primitives import nil, true, false
 from pixie.vm.numbers import Integer, _add
@@ -52,7 +52,8 @@ def _nth(self, idx):
     i = idx.int_val()
     if 0 <= i < len(self._str):
         return Character(ord(self._str[i]))
-    affirm(False, u"Index out of Range")
+    runtime_error(u"Index out of range",
+            u"pixie.stdlib/OutOfRangeException")
 
 @extend(proto._nth_not_found, String)
 def _nth_not_found(self, idx, not_found):

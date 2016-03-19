@@ -234,7 +234,7 @@ class Code(BaseCode):
             runtime_error(u"Invalid number of arguments " + unicode(str(len(args))) 
                           + u" for function '" + unicode(str(self._name)) + u"'. Expected "
                           + unicode(str(self.get_arity())),
-                          u":pixie.stdlib/InvalidArityException")
+                          u"pixie.stdlib/InvalidArityException")
 
     def invoke_with(self, args, this_fn):
         try:

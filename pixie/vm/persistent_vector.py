@@ -1,6 +1,6 @@
 py_object = object
 import pixie.vm.object as object
-from pixie.vm.object import affirm
+from pixie.vm.object import affirm, runtime_error
 from pixie.vm.primitives import nil, true, false
 from pixie.vm.numbers import Integer
 import pixie.vm.stdlib as proto
@@ -56,7 +56,8 @@ class PersistentVector(object.Object):
             assert isinstance(node, Node)
             return node._array
 
-        affirm(False, u"Index out of Range")
+        runtime_error(u"Index out of range",
+                u"pixie.stdlib/OutOfRangeException")
 
     def nth(self, i, not_found=None):
         if 0 <= i < self._cnt:
@@ -64,7 +65,8 @@ class PersistentVector(object.Object):
             return node[i & 0x01f]
 
         if not_found is None:
-            affirm(False, u"Index out of Range")
+            runtime_error(u"Index out of range",
+                    u"pixie.stdlib/OutOfRangeException")
         else:
             return not_found
 
@@ -176,8 +178,8 @@ class PersistentVector(object.Object):
         if idx == self._cnt:
             return self.conj(val)
         else:
-            object.runtime_error(u"index out of range",
-                                 u"pixie.stdlib/OutOfRangeException")
+            runtime_error(u"Index out of range",
+                    u"pixie.stdlib/OutOfRangeException")
 
 
 def do_assoc(lvl, node, idx, val):
@@ -319,7 +321,8 @@ class TransientVector(object.Object):
                 level -= 5
             return node._array
 
-        affirm(False, u"Index out of Range")
+        runtime_error(u"Index out of range",
+                u"pixie.stdlib/OutOfRangeException")
 
     def editable_array_for(self, i):
         if i >= 0 and i < self._cnt:
@@ -333,7 +336,8 @@ class TransientVector(object.Object):
                 level -= 5
             return node._array
 
-        affirm(False, u"Index out of bounds")
+        runtime_error(u"Index out of range",
+                u"pixie.stdlib/OutOfRangeException")
 
     def nth(self, i, not_found=nil):
         self.ensure_editable()

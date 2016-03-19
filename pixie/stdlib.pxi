@@ -2004,13 +2004,13 @@ For more information, see http://clojure.org/special_forms#binding-forms"}
                     (when (empty? s)
                       (throw
                        [:pixie.stdlib/OutOfRangeException
-                        "Index out of Range"]))
+                        "Index out of range"]))
                     (if (and (pos? n) s)
                       (recur (next s) (dec n))
                       (if (zero? n)
                         (first s)
                         (throw [:pixie.stdlib/OutOfRangeException
-                                "Index out of Range"])))))
+                                "Index out of range"])))))
 (extend -nth-not-found ISeq (fn [s n not-found]
                               (if (and (pos? n) s)
                                 (recur (next s) (dec n) not-found)
@@ -2042,7 +2042,7 @@ For more information, see http://clojure.org/special_forms#binding-forms"}
   (-nth [self idx]
     (if (and (>= idx 0) (< idx n))
       x
-      (throw [:pixie.stdlib/OutOfRangeException "Index out of Range"])))
+      (throw [:pixie.stdlib/OutOfRangeException "Index out of range"])))
   (-nth-not-found [self idx not-found]
     (if (and (>= idx 0) (< idx n))
       x
@@ -2093,12 +2093,12 @@ For more information, see http://clojure.org/special_forms#binding-forms"}
   IIndexed
   (-nth [self idx]
     (when (or (= start stop 0) (neg? idx))
-      (throw [:pixie.stdlib/OutOfRangeException "Index out of Range"]))
+      (throw [:pixie.stdlib/OutOfRangeException "Index out of range"]))
     (let [cmp (if (< start stop) < >)
           val (+ start (* idx step))]
       (if (cmp val stop)
         val
-        (throw [:pixie.stdlib/OutOfRangeException "Index out of Range"]))))
+        (throw [:pixie.stdlib/OutOfRangeException "Index out of range"]))))
   (-nth-not-found [self idx not-found]
     (let [cmp (if (< start stop) < >)
           val (+ start (* idx step))]

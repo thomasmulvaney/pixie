@@ -117,31 +117,31 @@
   ;; throws error for bad index
   (try
     (nth [1 2 3] 99)
-    (catch ex (t/assert= (ex-msg ex) "Index out of Range")))
+    (catch ex (t/assert= (ex-msg ex) "Index out of range")))
   (try
     (nth '(1 2 3) 99)
-    (catch ex (t/assert= (ex-msg ex) "Index out of Range")))
+    (catch ex (t/assert= (ex-msg ex) "Index out of range")))
   (try
     (nth (make-array 3) 99)
-    (catch ex (t/assert= (ex-msg ex) "Index out of Range")))
+    (catch ex (t/assert= (ex-msg ex) "Index out of range")))
   (try
     (nth (range 4) 99)
-    (catch ex (t/assert= (ex-msg ex) "Index out of Range")))
+    (catch ex (t/assert= (ex-msg ex) "Index out of range")))
   (try
     (nth "hithere" 99)
-    (catch ex (t/assert= (ex-msg ex) "Index out of Range")))
+    (catch ex (t/assert= (ex-msg ex) "Index out of range")))
   (try
     (nth [] 0)
-    (catch ex (t/assert= (ex-msg ex) "Index out of Range")))
+    (catch ex (t/assert= (ex-msg ex) "Index out of range")))
   (try
     (nth '() 0)
-    (catch ex (t/assert= (ex-msg ex) "Index out of Range")))
+    (catch ex (t/assert= (ex-msg ex) "Index out of range")))
   (try
     (nth (repeat 99 nil) 99)
-    (catch ex (t/assert= (ex-msg ex) "Index out of Range")))
+    (catch ex (t/assert= (ex-msg ex) "Index out of range")))
   (try
     (nth (range 0 0) 0)
-    (catch ex (t/assert= (ex-msg ex) "Index out of Range")))
+    (catch ex (t/assert= (ex-msg ex) "Index out of range")))
 
   ;; if not-found is specified, uses that for out of range
   (t/assert= (nth [1 2 3] 99 :default) :default)
@@ -670,7 +670,7 @@
              {1 2, 2 2, 3 2, 4 1}))
 
 (t/deftest test-condp
-  (t/assert-throws? RuntimeException
+  (t/assert-throws? :pixie.stdlib/MissingClauseException
     "No matching clause!"
     (condp :dont-call-me :dont-use-me))
   (let [f (fn [x]
@@ -683,7 +683,7 @@
     (t/assert= (f 9) :whatever)))
 
 (t/deftest test-case
-  (t/assert-throws? RuntimeException
+  (t/assert-throws? :pixie.stdlib/MissingClauseException
     "No matching clause!"
     (case :no-matter-what))
   (let [f (fn [x]
@@ -705,10 +705,10 @@
   (t/assert= (instance? [Symbol Keyword] 'a) true)
   (t/assert= (instance? [Symbol Keyword] 42) false)
   (t/assert= (instance? [] :x) false)
-  (t/assert-throws? RuntimeException
+  (t/assert-throws? :pixie.stdlib/AssertionException
     "c must be a type"
     (instance? :not-a-type 123))
-  (t/assert-throws? RuntimeException
+  (t/assert-throws? :pixie.stdlib/AssertionException
     "c must be a type"
     (instance? [Keyword :also-not-a-type] 123)))
 
@@ -725,10 +725,10 @@
   (t/assert= (satisfies? [] :xyz) true)
   (t/assert= (satisfies? [ILookup IIndexed] [1 2]) true)
   (t/assert= (satisfies? [ILookup IIndexed] {1 2}) false)
-  (t/assert-throws? RuntimeException
+  (t/assert-throws? :pixie.stdlib/AssertionException
     "proto must be a Protocol"
     (satisfies? :not-a-proto 123))
-  (t/assert-throws? RuntimeException
+  (t/assert-throws? :pixie.stdlib/AssertionException
     "proto must be a Protocol"
     (satisfies? [IIndexed :also-not-a-proto] [1 2]))
   (defprotocol IFoo (foo [this]))
@@ -763,14 +763,14 @@
   (let [f (fn ([a] {:pre [(even? a)] :post [(= % 6)]} (/ a 2))
             ([a b] {:pre [(= (+ 1 a) b)] :post [(odd? %)]} (+ a b)))]
     (t/assert= 6 (f 12))
-    (t/assert-throws? RuntimeException
+    (t/assert-throws? :pixie.stdlib/AssertionException
                       "Assert failed: (even? a)"
                       (f 13))
-    (t/assert-throws? RuntimeException
+    (t/assert-throws? :pixie.stdlib/AssertionException
                       "Assert failed: (= % 6)"
                       (f 14))
     (t/assert= 15 (f 7 8))
-    (t/assert-throws? RuntimeException
+    (t/assert-throws? :pixie.stdlib/AssertionException
                       "Assert failed: (= (+ 1 a) b)"
                       (f 1 1))))
 

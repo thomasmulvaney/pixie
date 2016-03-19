@@ -69,10 +69,10 @@
       exn#))
   ([klass body]
    `(let [exn# (assert-throws? ~body)]
-     (assert (= (type exn#) ~klass)
+     (assert (= (ex-data exn#) ~klass)
              (str "Expected " (pr-str (quote ~body))
                   " to throw exception of class " (pr-str ~klass)
-                  " but got " (pr-str (type exn#))))
+                  " but got " (pr-str (ex-data exn#))))
      exn#))
   ([klass msg body]
    `(let [exn# (assert-throws? ~klass ~body)]

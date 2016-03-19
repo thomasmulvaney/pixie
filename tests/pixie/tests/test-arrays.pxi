@@ -11,7 +11,7 @@
 (t/deftest test-alength
   (let [a (make-array 10)]
     (t/assert= (alength a) 10)
-    (t/assert-throws? RuntimeException
+    (t/assert-throws? :pixie.stdlib/AssertionException
                       (alength []))))
 
 (t/deftest test-aget-and-aset
@@ -25,10 +25,10 @@
     (dotimes [i 10]
       (t/assert= (aget a i) i))
 
-    (t/assert-throws? RuntimeException
+    (t/assert-throws? :pixie.stdlib/AssertionException
                (aget a 1.0))
 
-    (t/assert-throws? RuntimeException
+    (t/assert-throws? :pixie.stdlib/AssertionException
                (aset a 1.0 :foo))))
 
 (t/deftest test-aconcat
@@ -44,10 +44,10 @@
       (dotimes [i 20]
         (t/assert= (aget a3 i) i)))
 
-    (t/assert-throws? RuntimeException
+    (t/assert-throws? :pixie.stdlib/AssertionException
                       (t/aconcat a1 []))
 
-    (t/assert-throws? RuntimeException
+    (t/assert-throws? :pixie.stdlib/AssertionException
                       (t/aconcat a1 '()))))
 
 (t/deftest test-aslice
@@ -62,13 +62,13 @@
       (foreach [i (range 0 3)]
                (t/assert= (aget a2 i) (+ i 7))))
 
-    (t/assert-throws? RuntimeException
+    (t/assert-throws? :pixie.stdlib/AssertionException
                       (aslice [1 2 3 4] 0 2))
 
-    (t/assert-throws? RuntimeException
+    (t/assert-throws? :pixie.stdlib/AssertionException
                       (aslice '() 0 2))
 
-    (t/assert-throws? RuntimeException
+    (t/assert-throws? :pixie.stdlib/AssertionException
                       (aslice a 1.0 2))))
 
 

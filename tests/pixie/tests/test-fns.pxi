@@ -1,6 +1,8 @@
 (ns pixie.test.test-fns
   (require pixie.test :as t))
 
+(def arity-exception :pixie.stdlib/InvalidArityException)
+
 (t/deftest test-fn-literals
   (t/assert= (#(+ 3 4)) 7)
   (t/assert= (#(+ 3 %) 4) 7)
@@ -23,38 +25,36 @@
         arity-1-or-3 (fn arity-1-or-3 ([a]) ([a b c]))
         arity-0-or-1-or-3-or-more 
         (fn arity-0-or-1-or-3-or-more ([]) ([a]) ([a b c & more]))]
-    (t/assert-throws? RuntimeException 
+    (t/assert-throws? arity-exception 
       "Invalid number of arguments 1 for function 'arity-0'. Expected 0" 
       (arity-0 :foo))
-    (t/assert-throws? RuntimeException
+    (t/assert-throws? arity-exception
       "Invalid number of arguments 2 for function 'arity-0'. Expected 0"
       (arity-0 :foo :bar))
-    (t/assert-throws? RuntimeException
+    (t/assert-throws? arity-exception
       "Invalid number of arguments 0 for function 'arity-1'. Expected 1"
       (arity-1))
-    (t/assert-throws? RuntimeException
+    (t/assert-throws? arity-exception
       "Invalid number of arguments 2 for function 'arity-1'. Expected 1"
       (arity-1 :foo :bar))
-    (t/assert-throws? RuntimeException
+    (t/assert-throws? arity-exception
       "Invalid number of arguments 0 for function 'arity-2'. Expected 2"
       (arity-2))
-    (t/assert-throws? RuntimeException
+    (t/assert-throws? arity-exception
       "Invalid number of arguments 1 for function 'arity-2'. Expected 2"
       (arity-2 :foo))
-    (t/assert-throws? RuntimeException
+    (t/assert-throws? arity-exception
       "Wrong number of arguments 2 for function 'arity-0-or-1'. Expected 0 or 1"
       (arity-0-or-1 :foo :bar))
-    (t/assert-throws? RuntimeException
+    (t/assert-throws? arity-exception
       "Wrong number of arguments 3 for function 'arity-0-or-1'. Expected 0 or 1"
       (arity-0-or-1 :foo :bar :baz))
-    (t/assert-throws? RuntimeException
+    (t/assert-throws? arity-exception
       "Wrong number of arguments 2 for function 'arity-1-or-3'. Expected 1 or 3"
       (arity-1-or-3 :foo :bar))
-    (t/assert-throws? RuntimeException
+    (t/assert-throws? arity-exception
       "Wrong number of arguments 0 for function 'arity-1-or-3'. Expected 1 or 3"
       (arity-1-or-3))
-    (t/assert-throws? RuntimeException
+    (t/assert-throws? arity-exception
       "Wrong number of arguments 2 for function 'arity-0-or-1-or-3-or-more'. Expected 0, 1 or 3+"
       (arity-0-or-1-or-3-or-more :foo :bar))))
-
-(t/deftest test-code-arities)
