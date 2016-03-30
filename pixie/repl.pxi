@@ -1,6 +1,5 @@
 (ns pixie.repl
   (:require [pixie.stacklets :as st]
-            [pixie.io :as io]
             [pixie.ffi       :as ffi]
             [pixie.ffi-infer :as f]))
 
@@ -11,15 +10,14 @@
 
 
 (defn repl []
-  (println "============")
   (let [rdr (reader-fn (fn []
                          (let [prompt (if (= 0 pixie.stdlib/*reading-form*)
                                         (str (name pixie.stdlib/*ns*) " => ")
                                         "")
-                               line (st/apply-blocking readline prompt)]
-                           (println (ffi/charp->str (type line)))
-                           (if line
-                             (do
+                               line-ptr (st/apply-blocking readline prompt)]
+                           (if line-ptr
+                             (let [line (ffi/charp->str line-ptr)]
+                               ;(dispose! line-ptr)
                                (add_history line)
                                (str line "\n"))
                              ""))))]

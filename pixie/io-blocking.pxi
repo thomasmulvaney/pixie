@@ -2,7 +2,6 @@
   (:require [pixie.streams :as st :refer :all]
             [pixie.io.common :as common]))
 
-(println "^^^^^^^^^^")
 (def fopen (ffi-fn libc "fopen" [CCharP CCharP] CVoidP))
 (def fseek (ffi-fn libc "fseek" [CVoidP CInt CInt] CInt))
 (def ftell  (ffi-fn libc "ftell" [CVoidP] CInt))
@@ -33,7 +32,6 @@
     (-rewind fp))
   IDisposable
   (-dispose! [this]
-    (println "closing..")
     (fclose fp))
   IReduce
   (-reduce [this f init]
@@ -73,21 +71,16 @@
   IByteOutputStream
   (write-byte [this val]
     (assert (integer? val) "Value must be a int")
-    (println "writing byte")
     (fputc val fp))
   IOutputStream
   (write [this buffer]
-    (println "buffered write")
     (fwrite buffer 1 (count buffer) fp))
   IDisposable
   (-dispose! [this]
-    (println "closing")
     (fclose fp)))
 
 (defn file-output-rf [filename]
-  (println "trying...")
   (let [fp (->FileOutputStream (fopen filename "w"))]
-    (println "success...")
     (fn ([] 0)
       ([cnt] (dispose! fp) nil)
       ([cnt chr]

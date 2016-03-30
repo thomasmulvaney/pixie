@@ -94,7 +94,6 @@ class FFIFn(object.Object):
     def __init__(self, name, fn_ptr, c_fn_type):
         assert isinstance(c_fn_type, CFunctionType)
         self._name = name
-        print("name", self._name)
         self._f_ptr = fn_ptr
         self._c_fn_type = c_fn_type
 
@@ -117,7 +116,6 @@ class FFIFn(object.Object):
         cd = self._c_fn_type.get_cd()
         offset_p = rffi.ptradd(exb, jit.promote(cd.exchange_result))
         ret_val = self._c_fn_type._ret_type.ffi_get_value(offset_p)
-        print("got ret value...", ret_val.type().name())
         return ret_val
 
     @jit.unroll_safe
@@ -194,7 +192,6 @@ def _ffi_fn__args(args):
 
     tp = CFunctionType(new_args, ret_type, is_variadic)
     nm = rt.name(nm)
-    print("new ffi", nm)
     f = FFIFn(nm, lib.get_fn_ptr(nm), tp)
     return f
 
@@ -388,12 +385,10 @@ class CCharP(CType):
         CType.__init__(self, u"pixie.stdlib.CCharP")
 
     def ffi_get_value(self, ptr):
-        print("casting:")
         casted = rffi.cast(rffi.CCHARPP, ptr)
         if casted[0] == lltype.nullptr(rffi.CCHARP.TO):
             return nil
         else:
-            print("&&&Called...", casted[0], casted[0], rffi.charp2strn(casted[0], 3))
             return CharP(casted[0])
 
     def ffi_set_value(self, ptr, val):
@@ -424,7 +419,6 @@ class CCharP(CType):
         return rffi.sizeof(rffi.CCHARP)
 
     def ffi_type(self):
-        print("CCharP type called.")
         return clibffi.ffi_type_pointer
 
 ccharp = CCharP()
@@ -500,27 +494,17 @@ class CharP(PointerType):
         return CharP._type
 
     def __init__(self, raw_data):
-        print("&&&&INIT&&&&&", raw_data)
         self._raw_data = raw_data
 
     def read_string(self):
-        print("read_string")
         s = rffi.charp2str(self._raw_data)
-        print("val:", s)
         return String(unicode(s))
 
     def read_length(self, length):
-        print("read_length", length.int_val(), self._raw_data)
         s = rffi.charp2strn(self._raw_data, length.int_val())
-        print("val:", s)
         return String(unicode(s))
 
-    def free_data(self):
-        print("FREEing CHARP")
-        lltype.free(self._raw_data, flavor="raw")
-
     def ffi_type(self):
-        print("Called type on CharP pointer type")
         return clibffi.ffi_type_pointer
 
 
@@ -528,7 +512,7 @@ class CharP(PointerType):
 def _charp_to_str(charp):
     """Given a CharP return a string of all the characters up to the NULL char"""
     affirm(isinstance(charp, CharP), u"Accepts a charp")
-    charp.read_string()
+    return charp.read_string()
 
 
 @as_var(u"pixie.ffi", u"charp->str-n")
@@ -537,7 +521,7 @@ def _charp_to_str(charp, n):
     earlier, a smaller string will be returned."""
     affirm(isinstance(charp, CharP), u"Accepts a charp")
     affirm(isinstance(n, Integer), u"Accepts a charp")
-    charp.read_length(n)
+    return charp.read_length(n)
 
 @extend(proto._dispose_BANG_, ccharp)
 def _dispose_voidp(self):
@@ -547,7 +531,6 @@ class VoidP(PointerType):
     _type = cvoidp
 
     def __init__(self, raw_data):
-        print("VoidP created ********")
         self._raw_data = raw_data
 
     def raw_data(self):
@@ -759,12 +742,10 @@ class CFunctionType(object.Type):
         self._cd = CifDescrBuilder(self._arg_types, self._ret_type).rawallocate()
 
     def ffi_get_value(self, ptr):
-        print("Called..............")
         casted = rffi.cast(rffi.VOIDPP, ptr)
         return FFIFn(u"<unknown>", casted[0], self)
 
     def ffi_set_value(self, ptr, val):
-        print(self)
         if isinstance(val, CCallback):
             casted = rffi.cast(rffi.VOIDPP, ptr)
             casted[0] = val.get_raw_closure()
