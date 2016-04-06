@@ -24,11 +24,10 @@
 
 (t/deftest test-polymorphic-fn-types
   (t/assert= (foo 42) "foo: 42")
-  (t/assert-throws? RuntimeException 
+  (t/assert-throws? :pixie.stdlib/AssertionException
                     "No override for pixie.stdlib.String on foo in protocol IFoo" 
                     (foo "42"))
   (t/assert= (bar 42 7) 49)
-  (t/assert-throws? RuntimeException 
+  (t/assert-throws? :pixie.stdlib/AssertionException 
                     "No override for [pixie.stdlib.Integer pixie.stdlib.String] on bar in protocol IFoo"
-                    (bar 42 "7"))
-  )
+                    (bar 42 "7")))
